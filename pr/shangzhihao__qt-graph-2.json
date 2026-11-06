@@ -1,0 +1,14 @@
+{
+  "baseline": "sha256:d59d088d7426328e352ff269b2bd943c6a90664adc01353955a5d146f93602d2",
+  "comparison": null,
+  "flagged": [],
+  "head_sha": "3d8944b383d0ffd8ef10d8491715dec1d37c7751",
+  "improved": [],
+  "nearest_baseline": false,
+  "number": 2,
+  "repo": "shangzhihao/qt-graph",
+  "run_id": "graph-42238601390",
+  "run_url": "https://github.com/shangzhihao/qt-graph/actions/runs/42238601390",
+  "status": "baseline-pending",
+  "suspected_cases": []
+}
