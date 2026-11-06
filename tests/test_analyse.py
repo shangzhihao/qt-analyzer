@@ -48,7 +48,7 @@ class Scenario:
             "number": number,
             "head_sha": head_sha,
             "merge_sha": f"merge-{head_sha}",
-            "base_sha": base_sha,
+            "baseline": {n: s for n, (s, _) in self.components.items()} | {component: base_sha},
         }
         run_id = f"pr-{number}-{head_sha}"
         data = manifest(run_id, "pr", components, None, 1, 2, pr=pr, created_at=created_at)
@@ -200,4 +200,6 @@ def test_pr_against_its_base_state(tmp_path):
     ]
     assert suspected_families.count("family0") >= 1
     assert len(suspected_families) - suspected_families.count("family0") <= 2
-    assert prs[9].status == "baseline-pending"
+    # baseline never measured: compared with the nearest measured main state
+    assert prs[9].status == "ok" and prs[9].nearest_baseline
+    assert prs[9].baseline == s.keys[-1]

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from qt_analyzer.contract import SCHEMA_VERSION, state_key
+from qt_analyzer.contract import SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -38,14 +38,12 @@ def manifest(
     pr: dict | None = None,
     created_at: str = "2026-11-06T22:00:00Z",
 ) -> dict:
-    shas = {name: sha for name, (sha, _) in components.items()}
     return {
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
         "kind": kind,
         "created_at": created_at,
         "state": {
-            "key": state_key(shas),
             "created_by": created_by,
             "components": {
                 name: {"repo": f"me/qt-{name}", "sha": sha, "committed_at": at}

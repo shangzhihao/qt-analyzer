@@ -45,6 +45,14 @@ def pr_comment(pr: PrResult) -> str:
         lines += [
             verdict,
             "",
+        ]
+        if pr.nearest_baseline:
+            lines += [
+                "The `main` state this PR is based on has not been measured; compared "
+                "with the nearest measured `main` state instead.",
+                "",
+            ]
+        lines += [
             f"1 run per case, compared with recent `main` runs. Overall "
             f"{_pct(c.overall.rate_b)} → {_pct(c.overall.rate_s)} "
             f"({c.overall.delta * 100:+.1f} pts).",
