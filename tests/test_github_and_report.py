@@ -102,9 +102,17 @@ def test_pr_comment_is_created_once_and_updated_on_a_new_result(tmp_path):
     assert "No significant drop" in body
 
 
-def test_pending_baseline_comment(tmp_path):
+def test_pending_baseline_comment_when_nothing_is_measured_yet(tmp_path):
+    s = Scenario(tmp_path, make_cases(2, 5))
+    s.pr("graph", 6, "g-unmeasured", "h1", make_cases(2, 5), "2026-11-03T01:00:00Z")
+    (pr,) = s.analyse().prs
+    assert "Baseline pending" in pr_comment(pr)
+
+
+def test_nearest_baseline_is_mentioned(tmp_path):
     s = Scenario(tmp_path, make_cases(2, 5))
     s.commit("graph", "g1")
     s.pr("graph", 6, "g-unmeasured", "h1", make_cases(2, 5), "2026-11-03T01:00:00Z")
     (pr,) = s.analyse().prs
-    assert "Baseline pending" in pr_comment(pr)
+    assert pr.nearest_baseline
+    assert "nearest measured `main` state" in pr_comment(pr)

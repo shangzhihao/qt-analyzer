@@ -25,7 +25,7 @@ def test_manifest_round_trip():
 @pytest.mark.parametrize(
     "change, message",
     [
-        ({"schema_version": 2}, "schema_version"),
+        ({"schema_version": 1}, "schema_version"),
         ({"kind": "weekly"}, "kind"),
         ({"pr": {"component": "graph"}}, "malformed"),
         ({"shards": 0}, "at least 1"),
@@ -37,10 +37,25 @@ def test_manifest_rejects_contract_violations(change, message):
         Manifest.from_json(data)
 
 
-def test_manifest_rejects_a_forged_state_key():
+def test_the_analyzer_computes_the_state_key():
     data = manifest("r1", "main", _components(), "graph", 1, 2)
-    data["state"]["key"] = state_key({"graph": "other"})
-    with pytest.raises(ContractError, match="does not match"):
+    assert "key" not in data["state"]
+    assert Manifest.from_json(data).state.key == state_key({"graph": "g1", "data": "d1"})
+
+
+def _pr(baseline):
+    return {"component": "graph", "repo": "me/qt-graph", "number": 3, "head_sha": "h",
+            "merge_sha": "m", "baseline": baseline}  # fmt: skip
+
+
+def test_pr_manifest_names_its_baseline():
+    data = manifest("r1", "pr", _components(), None, 1, 2, pr=_pr({"graph": "g0", "data": "d1"}))
+    assert Manifest.from_json(data).pr.baseline == {"graph": "g0", "data": "d1"}
+
+
+def test_pr_baseline_must_cover_the_same_components():
+    data = manifest("r1", "pr", _components(), None, 1, 2, pr=_pr({"graph": "g0"}))
+    with pytest.raises(ContractError, match="same components"):
         Manifest.from_json(data)
 
 

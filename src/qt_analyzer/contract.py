@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-SCHEMA_VERSION = 1
+# 2: the analyzer computes state keys itself; PR manifests name their baseline.
+SCHEMA_VERSION = 2
 
 Kind = Literal["pr", "main", "nightly"]
 Outcome = Literal["passed", "failed", "error"]
@@ -33,7 +34,10 @@ class ContractError(ValueError):
 
 
 def state_key(components: Mapping[str, str]) -> str:
-    """Identify a state by the sorted `name=sha` pairs of its components."""
+    """Identify a state by the sorted `name=sha` pairs of its components.
+
+    Only the analyzer computes this; producers send component versions only.
+    """
     text = "\n".join(f"{name}={sha}" for name, sha in sorted(components.items()))
     return "sha256:" + hashlib.sha256(text.encode()).hexdigest()
 
@@ -70,7 +74,7 @@ class PrInfo:
     number: int
     head_sha: str
     merge_sha: str
-    base_sha: str
+    baseline: dict[str, str]  # the main state to compare with: component -> sha
 
 
 @dataclass(frozen=True)
@@ -101,9 +105,8 @@ class Manifest:
                 name: ComponentVersion(c["repo"], c["sha"], c["committed_at"])
                 for name, c in raw_state["components"].items()
             }
-            state = State(raw_state["key"], raw_state.get("created_by"), components)
-            if state.key != state_key(state.shas):
-                raise ContractError(f"state key {state.key} does not match its components")
+            shas = {name: c.sha for name, c in components.items()}
+            state = State(state_key(shas), raw_state.get("created_by"), components)
             raw_pr = data.get("pr")
             pr = None
             if raw_pr is not None:
@@ -113,8 +116,10 @@ class Manifest:
                     int(raw_pr["number"]),
                     raw_pr["head_sha"],
                     raw_pr["merge_sha"],
-                    raw_pr["base_sha"],
+                    {str(k): str(v) for k, v in raw_pr["baseline"].items()},
                 )
+                if set(pr.baseline) != set(components):
+                    raise ContractError("pr.baseline must name the same components as the state")
             if (kind == "pr") != (pr is not None):
                 raise ContractError("pr must be set exactly when kind is 'pr'")
             if kind != "pr" and state.created_by not in components:
