@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from qt_analyzer.contract import Manifest, State, state_key
+from qt_analyzer.decisions import DecisionLog, alert_id, config_hash
 from qt_analyzer.stats import (
     Pair,
     ScopeTest,
@@ -250,6 +251,7 @@ class NightlyResult:
 
 @dataclass
 class Alert:
+    id: str
     state: str
     suspect_range: list[str]
     scopes: list[str]
@@ -289,25 +291,36 @@ class Analysis:
     alerts: list[Alert]
     reference: str | None
     prs: list[PrResult]
+    log: DecisionLog = field(default_factory=DecisionLog)
 
 
 def analyse(results: ResultStore, config: Config) -> Analysis:
     timeline_data, pr_runs = load(results)
-    return analyse_data(timeline_data, pr_runs, config)
+    return analyse_data(timeline_data, pr_runs, config, DecisionLog.load(results))
 
 
-def analyse_data(timeline_data: list[StateData], pr_runs: list[PrRun], config: Config) -> Analysis:
-    """Analyse an ordered main timeline and PR runs held in memory."""
+def analyse_data(
+    timeline_data: list[StateData],
+    pr_runs: list[PrRun],
+    config: Config,
+    log: DecisionLog | None = None,
+) -> Analysis:
+    """Analyse an ordered main timeline and PR runs held in memory.
+
+    Decided states and reported PR runs keep the verdicts in `log`; new ones are
+    decided and appended to it.
+    """
+    log = log if log is not None else DecisionLog()
     entries = [TimelineEntry(d) for d in timeline_data]
-    alerts, reference = _nightly(entries, config)
+    alerts, reference = _nightly(entries, config, log)
     for i, entry in enumerate(entries):
         if entry.data.runs["main"]:
             entry.push = _push(entries, i, config)
         if entry.push and entry.push.status == "suspected" and entry.nightly:
             if entry.nightly.status == "ok":
                 entry.nightly.status = "cleared"
-    prs = _prs(entries, pr_runs, config)
-    return Analysis(entries, alerts, reference, prs)
+    prs = _prs(entries, pr_runs, config, log)
+    return Analysis(entries, alerts, reference, prs, log)
 
 
 def _starts_regression(entry: TimelineEntry) -> bool:
@@ -359,9 +372,33 @@ def _case_flags(comparison: Comparison, fdr: float) -> list[str]:
     return sorted(c.case_key for c in comparison.cases if c.q is not None and c.q <= fdr)
 
 
-def _nightly(entries: list[TimelineEntry], config: Config) -> tuple[list[Alert], str | None]:
-    alerts: list[Alert] = []
-    open_alert: Alert | None = None
+def _apply(effects: list[dict[str, Any]], alerts: dict[str, Alert], open_ids: list[str]) -> None:
+    for e in effects:
+        if e["action"] == "opened":
+            alerts[e["id"]] = Alert(e["id"], e["state"], e["suspect_range"], e["scopes"],
+                                    e["cases"], e["reference"])  # fmt: skip
+            open_ids.append(e["id"])
+        elif e["action"] == "extended":
+            alerts[e["id"]].still_regressed_at.append(e["state"])
+        elif e["action"] == "closed":
+            alerts[e["id"]].open = False
+            alerts[e["id"]].closed_by = e["state"]
+            open_ids.remove(e["id"])
+
+
+def _nightly(
+    entries: list[TimelineEntry], config: Config, log: DecisionLog
+) -> tuple[list[Alert], str | None]:
+    """Walk the nightly-measured states in timeline order.
+
+    A state with a `state.decided` record replays it: verdict, alert effects and
+    the reference afterwards come from the log. A new state is decided against
+    the reference and open alerts in force at its position, and recorded.
+    """
+    decided = log.decided()
+    by_key = {e.data.state.key: e.data for e in entries}
+    alerts: dict[str, Alert] = {}
+    open_ids: list[str] = []
     reference: StateData | None = None
     previous: StateData | None = None
     previous_index = -1
@@ -369,60 +406,82 @@ def _nightly(entries: list[TimelineEntry], config: Config) -> tuple[list[Alert],
         data = entry.data
         if not data.runs["nightly"]:
             continue
+        key = data.state.key
         nightly = data.counts["nightly"]
-        if reference is None or previous is None:
-            entry.nightly = NightlyResult("first", None, None, [], [], [], None, None)
-            reference = previous = data
-            previous_index = i
-            continue
-
-        step = compare(nightly, previous.counts["nightly"])
-        step_flagged = step.scopes_below(config.nightly_z)
-        cases_flagged = _case_flags(step, config.nightly_case_fdr)
-        vs_ref = compare(nightly, reference.counts["nightly"])
-        ref_flagged = vs_ref.scopes_below(config.nightly_z)
-        suspect_range = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
-
-        new_drop = bool(step_flagged)  # cases are evidence, not a trigger
-        if open_alert is None and ref_flagged:
-            new_drop = True  # slow drift: no single step was large enough
-        if new_drop:
-            if open_alert is not None:
-                open_alert.open = False
-                open_alert.closed_by = f"superseded by {data.state.key}"
-            open_alert = Alert(
-                data.state.key,
-                suspect_range,
-                sorted(set(step_flagged) | set(ref_flagged)),
-                cases_flagged,
-                reference.state.key,
-            )
-            alerts.append(open_alert)
-            status = "confirmed"
-        elif open_alert is not None and ref_flagged:
-            open_alert.still_regressed_at.append(data.state.key)
-            status = "ongoing"
-        else:
-            if open_alert is not None:
-                open_alert.open = False
-                open_alert.closed_by = data.state.key
-                open_alert = None
-            if not vs_ref.flagged_scopes(config.reference_move_alpha_per_state):
-                reference = data
-            status = "ok"
-
+        step = compare(nightly, previous.counts["nightly"]) if previous else None
+        vs_ref = compare(nightly, reference.counts["nightly"]) if reference else None
+        record = decided.get(key)
+        if record is None:
+            record = _decide(entries, i, previous_index, step, vs_ref, reference, open_ids,
+                             alerts, config, log)  # fmt: skip
+        _apply(record["effects"], alerts, open_ids)
         entry.nightly = NightlyResult(
-            status,
-            previous.state.key,
-            reference.state.key,
-            step_flagged,
-            ref_flagged,
-            cases_flagged,
+            record["verdict"],
+            previous.state.key if previous else None,
+            record["reference"],
+            record["step_flagged"],
+            record["reference_flagged"],
+            record["cases_flagged"],
             step,
             vs_ref,
         )
+        reference = by_key.get(record["reference"], data)
         previous, previous_index = data, i
-    return alerts, reference.state.key if reference else None
+    return list(alerts.values()), reference.state.key if reference else None
+
+
+def _decide(
+    entries: list[TimelineEntry],
+    i: int,
+    previous_index: int,
+    step: Comparison | None,
+    vs_ref: Comparison | None,
+    reference: StateData | None,
+    open_ids: list[str],
+    alerts: dict[str, Alert],
+    config: Config,
+    log: DecisionLog,
+) -> dict[str, Any]:
+    data = entries[i].data
+    key = data.state.key
+    step_flagged = step.scopes_below(config.nightly_z) if step else []
+    cases_flagged = _case_flags(step, config.nightly_case_fdr) if step else []
+    ref_flagged = vs_ref.scopes_below(config.nightly_z) if vs_ref else []
+    effects: list[dict[str, Any]] = []
+    if reference is None or step is None or vs_ref is None:
+        verdict, reference_after = "first", data
+    elif step_flagged or (ref_flagged and not open_ids):
+        # a new drop (a step, or slow drift while no alert is open)
+        new_id = alert_id(key, log.alert_ids() | set(alerts))
+        suspect = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
+        effects.append({"action": "opened", "id": new_id, "state": key, "suspect_range": suspect,
+                        "scopes": sorted(set(step_flagged) | set(ref_flagged)),
+                        "cases": cases_flagged, "reference": reference.state.key})  # fmt: skip
+        verdict, reference_after = "confirmed", reference
+    elif ref_flagged and open_ids:
+        effects.append({"action": "extended", "id": open_ids[-1], "state": key})
+        verdict, reference_after = "ongoing", reference
+    else:
+        effects += [{"action": "closed", "id": a, "state": key} for a in open_ids]
+        moves = not vs_ref.flagged_scopes(config.reference_move_alpha_per_state)
+        verdict, reference_after = "ok", data if moves else reference
+    record = log.append(
+        "state.decided",
+        state=key,
+        verdict=verdict,
+        reference=reference_after.state.key,
+        step_flagged=step_flagged,
+        reference_flagged=ref_flagged,
+        cases_flagged=cases_flagged,
+        effects=effects,
+        nightly_z=config.nightly_z,
+        config=config_hash(config),
+    )
+    for e in effects:
+        log.append(f"alert.{e['action']}", alert=e["id"], state=key)
+    if reference is None or reference_after is not reference:
+        log.append("reference.moved", state=reference_after.state.key, by=key)
+    return record
 
 
 def _nearest_measured(entries: list[TimelineEntry], before: str) -> int | None:
@@ -432,7 +491,9 @@ def _nearest_measured(entries: list[TimelineEntry], before: str) -> int | None:
     return candidates[-1] if candidates else None
 
 
-def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> list[PrResult]:
+def _prs(
+    entries: list[TimelineEntry], runs: list[PrRun], config: Config, log: DecisionLog
+) -> list[PrResult]:
     latest: dict[tuple[str, int], PrRun] = {}
     for run in runs:
         pr = run.manifest.pr
@@ -441,6 +502,7 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
         if key not in latest or run.manifest.created_at >= latest[key].manifest.created_at:
             latest[key] = run
     position = {e.data.state.key: i for i, e in enumerate(entries)}
+    reports = log.pr_reports()
     results = []
     for (repo, number), run in sorted(latest.items()):
         m, pr = run.manifest, run.manifest.pr
@@ -477,12 +539,23 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
         for j in earlier:
             merge(base, entries[j].data.all_counts().items())
         comparison = compare(run.counts, base)
-        flagged = comparison.flagged_scopes(config.pr_alpha)
-        suspected = sorted(
-            c.case_key
-            for c in comparison.cases
-            if c.p <= config.pr_case_p and c.passed_s < c.judged_s
-        )
+        reported = reports.get(m.run_id)
+        if reported is not None:  # decided once; later data cannot flip it
+            flagged, improved = reported["flagged"], reported["improved"]
+            suspected = reported["suspected_cases"]
+        else:
+            flagged = comparison.flagged_scopes(config.pr_alpha)
+            improved = comparison.improved_scopes(config.pr_alpha)
+            suspected = sorted(
+                c.case_key
+                for c in comparison.cases
+                if c.p <= config.pr_case_p and c.passed_s < c.judged_s
+            )
+            if not nearest:
+                log.append("pr.reported", run_id=m.run_id, repo=repo, number=number,
+                           head_sha=pr.head_sha, baseline=base_key,
+                           status="regressed" if flagged else "ok", flagged=flagged,
+                           improved=improved, suspected_cases=suspected)  # fmt: skip
         results.append(
             PrResult(
                 repo,
@@ -492,7 +565,7 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
                 "regressed" if flagged else "ok",
                 entries[i].data.state.key,
                 flagged,
-                comparison.improved_scopes(config.pr_alpha),
+                improved,
                 suspected,
                 comparison,
                 m.producer.get("run_url", ""),
@@ -533,10 +606,6 @@ def _state_json(data: StateData) -> dict[str, Any]:
     }
 
 
-def _file_name(key: str) -> str:
-    return key.removeprefix("sha256:")[:16] + ".json"
-
-
 def save(results: ResultStore, analysis: Analysis) -> None:
     rows = []
     for e in analysis.timeline:
@@ -563,7 +632,8 @@ def save(results: ResultStore, analysis: Analysis) -> None:
         rows.append(row)
     results.write_jsonl("states/timeline.jsonl", rows)
     results.write_json("reference.json", {"state_key": analysis.reference})
-    results.replace_dir("alerts", {_file_name(a.state): asdict(a) for a in analysis.alerts})
+    results.replace_dir("alerts", {f"{a.id}.json": asdict(a) for a in analysis.alerts})
+    analysis.log.save(results)
     results.replace_dir(
         "pr",
         {

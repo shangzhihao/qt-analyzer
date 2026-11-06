@@ -9,11 +9,9 @@ from typing import Any
 
 from qt_analyzer.analyse import PrResult
 from qt_analyzer.stats import ScopeTest
-from qt_analyzer.stores.results import ResultStore
 
 MARKER = "<!-- qt-report -->"
 API = "https://api.github.com"
-_BOOKKEEPING = "comments/prs.json"
 
 
 def _pct(x: float) -> str:
@@ -112,24 +110,39 @@ def github_request(token: str) -> Request:
     return request
 
 
-def sync_pr_comments(results: ResultStore, prs: list[PrResult], request: Request) -> list[str]:
-    """Create or update one comment per PR when its newest result changed."""
-    done: dict[str, dict[str, Any]] = results.read_json(_BOOKKEEPING) or {}
+def _version(pr: PrResult) -> str:
+    return f"<!-- qt-version {pr.run_id} {pr.status} {int(pr.nearest_baseline)} -->"
+
+
+def _paged(request: Request, url: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        batch = request("GET", f"{url}?per_page=100&page={page}", None) or []
+        items += batch
+        if len(batch) < 100:
+            return items
+        page += 1
+
+
+def sync_pr_comments(prs: list[PrResult], request: Request) -> list[str]:
+    """Create or update one comment per PR so it matches the newest result.
+
+    The comment is found by its marker among the PR's own comments (a
+    consistent listing, not search), and updated only when its hidden version
+    (run, verdict, baseline kind) differs. Safe to repeat after a crash.
+    """
     updated = []
     for pr in prs:
-        key = f"{pr.repo}#{pr.number}"
-        posted = done.get(key, {})
-        version = f"{pr.run_id}:{pr.status}"
-        if posted.get("version") == version:
+        url = f"{API}/repos/{pr.repo}/issues/{pr.number}/comments"
+        mine = [c for c in _paged(request, url) if MARKER in (c.get("body") or "")]
+        version = _version(pr)
+        if mine and version in mine[0]["body"]:
             continue
-        body = {"body": pr_comment(pr)}
-        comment_id = posted.get("comment_id")
-        if comment_id:
-            request("PATCH", f"{API}/repos/{pr.repo}/issues/comments/{comment_id}", body)
+        body = {"body": pr_comment(pr) + version + "\n"}
+        if mine:
+            request("PATCH", f"{API}/repos/{pr.repo}/issues/comments/{mine[0]['id']}", body)
         else:
-            created = request("POST", f"{API}/repos/{pr.repo}/issues/{pr.number}/comments", body)
-            comment_id = created["id"]
-        done[key] = {"comment_id": comment_id, "version": version}
-        results.write_json(_BOOKKEEPING, done)
-        updated.append(key)
+            request("POST", url, body)
+        updated.append(f"{pr.repo}#{pr.number}")
     return updated
