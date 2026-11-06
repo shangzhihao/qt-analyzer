@@ -74,6 +74,12 @@ class ResultStore:
         path = self.root / relative
         return json.loads(path.read_text()) if path.exists() else None
 
+    def read_jsonl(self, relative: str) -> list[dict[str, Any]]:
+        path = self.root / relative
+        if not path.exists():
+            return []
+        return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
     def write_jsonl(self, relative: str, rows: list[dict[str, Any]]) -> None:
         text = "".join(json.dumps(r, sort_keys=True) + "\n" for r in rows)
         self._write(self.root / relative, text)

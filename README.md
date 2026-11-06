@@ -22,6 +22,11 @@ uv run qt-analyzer status --results results/
   stores per-case counts in `results/`.
 - `analyse` rebuilds the timeline, nightly detection, alerts and PR results
   and writes them to `results/` (the layout of the `qt-results` branch).
+  Verdicts are taken once and recorded in `decisions.jsonl`: a state or PR run
+  that was decided keeps its verdict on every later pass, so a threshold change
+  or late evidence never rewrites an alert that was already reported.
+- `comment` creates or updates one comment per PR, found by its marker. CI runs
+  it only after the results are pushed.
 - `status` prints the same summary without writing.
 - `simulate` measures detection power offline: it replays a population of
   per-case pass rates (from `--population results/`, or synthetic) over a

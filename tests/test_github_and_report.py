@@ -1,6 +1,7 @@
 import io
 import random
 import zipfile
+from urllib.parse import parse_qs, urlsplit
 
 from synthetic import make_cases, manifest, write_run
 from test_analyse import Scenario, with_family
@@ -71,12 +72,30 @@ def test_ingest_from_artifacts_uses_the_newest_artifact_and_caches(tmp_path):
 
 
 class FakeApi:
+    """GitHub issue comments in memory: list, create, update."""
+
     def __init__(self):
+        self.comments = {}  # id -> (issue url, body)
         self.calls = []
 
     def __call__(self, method, url, body):
-        self.calls.append((method, url, body["body"]))
-        return {"id": 42}
+        self.calls.append((method, url.split("?")[0], body["body"] if body else None))
+        if method == "GET":
+            base = url.split("?")[0]
+            page = int(parse_qs(urlsplit(url).query).get("page", ["1"])[0])
+            items = [{"id": i, "body": b} for i, (u, b) in self.comments.items() if u == base]
+            return items if page == 1 else []
+        if method == "POST":
+            new_id = len(self.comments) + 1
+            self.comments[new_id] = (url, body["body"])
+            return {"id": new_id}
+        comment_id = int(url.rsplit("/", 1)[1])
+        issue_url = self.comments[comment_id][0]
+        self.comments[comment_id] = (issue_url, body["body"])
+        return {"id": comment_id}
+
+    def writes(self):
+        return [(m, u) for m, u, _ in self.calls if m != "GET"]
 
 
 def test_pr_comment_is_created_once_and_updated_on_a_new_result(tmp_path):
@@ -88,18 +107,37 @@ def test_pr_comment_is_created_once_and_updated_on_a_new_result(tmp_path):
     analysis = s.analyse()
     api = FakeApi()
 
-    assert sync_pr_comments(s.results, analysis.prs, api) == ["me/qt-graph#5"]
-    assert sync_pr_comments(s.results, analysis.prs, api) == []
-    method, url, body = api.calls[0]
-    assert method == "POST" and url.endswith("/repos/me/qt-graph/issues/5/comments")
+    assert sync_pr_comments(analysis.prs, api) == ["me/qt-graph#5"]
+    assert sync_pr_comments(analysis.prs, api) == []  # repeated pass: nothing written
+    assert api.writes() == [("POST", "https://api.github.com/repos/me/qt-graph/issues/5/comments")]
+    (body,) = [b for _, b in api.comments.values()]
     assert MARKER in body and "Possible regression" in body and "family2" in body
 
     s.pr("graph", 5, "g1", "h2", cases, "2026-11-03T02:00:00Z")
     analysis = s.analyse()
-    assert sync_pr_comments(s.results, analysis.prs, api) == ["me/qt-graph#5"]
-    method, url, body = api.calls[1]
-    assert method == "PATCH" and url.endswith("/issues/comments/42")
-    assert "No significant drop" in body
+    assert sync_pr_comments(analysis.prs, api) == ["me/qt-graph#5"]
+    assert api.writes()[-1] == (
+        "PATCH",
+        "https://api.github.com/repos/me/qt-graph/issues/comments/1",
+    )
+    assert len(api.comments) == 1
+    assert "No significant drop" in api.comments[1][1]
+
+
+def test_an_existing_comment_is_found_by_its_marker(tmp_path):
+    # e.g. results were reset or a pass crashed after commenting: no duplicate
+    cases = make_cases(families=2, per_family=10, p=0.9)
+    s = Scenario(tmp_path, cases)
+    s.commit("graph", "g1")
+    s.pr("graph", 8, "g1", "h1", cases, "2026-11-03T01:00:00Z")
+    api = FakeApi()
+    api.comments[7] = ("https://api.github.com/repos/me/qt-graph/issues/8/comments",
+                       MARKER + "\nold report")  # fmt: skip
+
+    sync_pr_comments(s.analyse().prs, api)
+
+    assert api.writes() == [("PATCH", "https://api.github.com/repos/me/qt-graph/issues/comments/7")]
+    assert len(api.comments) == 1
 
 
 def test_pending_baseline_comment_when_nothing_is_measured_yet(tmp_path):

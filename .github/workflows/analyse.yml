@@ -1,5 +1,5 @@
-# Ingest every run not yet complete, analyse, publish to the qt-results branch
-# and update PR comments. A dispatch only wakes this up; each pass handles
+# Ingest every run not yet complete, analyse, publish to the qt-results branch,
+# then update PR comments (persist first, then act). A dispatch only wakes this up; each pass handles
 # everything outstanding, so dropped or coalesced dispatches lose nothing.
 name: analyse
 
@@ -39,11 +39,6 @@ jobs:
         run: |
           uv run qt-analyzer ingest --github shangzhihao/qt-graph --results results
           uv run qt-analyzer analyse --results results | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Update PR comments
-        continue-on-error: true
-        env:
-          QT_PAT: ${{ secrets.QT_PAT }}
-        run: uv run qt-analyzer comment --results results
       - name: Publish results
         working-directory: results
         run: |
@@ -60,3 +55,9 @@ jobs:
             git pull -q --rebase origin qt-results
           done
           exit 1
+      # After publishing: the decisions are persisted before anything outside changes.
+      - name: Update PR comments
+        continue-on-error: true
+        env:
+          QT_PAT: ${{ secrets.QT_PAT }}
+        run: uv run qt-analyzer comment --results results

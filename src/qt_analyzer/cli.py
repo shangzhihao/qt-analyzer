@@ -144,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         if not token:
             print("QT_PAT is not set", file=sys.stderr)
             return 1
-        for key in sync_pr_comments(results, analysis.prs, github_request(token)):
+        for key in sync_pr_comments(analysis.prs, github_request(token)):
             print(f"commented on {key}")
         return 0
     if args.command == "analyse":
