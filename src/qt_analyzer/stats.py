@@ -9,6 +9,15 @@ from statistics import NormalDist
 
 _NORMAL = NormalDist()
 
+# Continuity correction: the difference is moved half a pass towards zero. At
+# the small per-scope levels a monthly budget needs (around 1e-4), the normal
+# approximation of a few discrete cases is otherwise too optimistic.
+CONTINUITY = 0.5
+
+
+def continuity(difference: float) -> float:
+    return math.copysign(max(abs(difference) - CONTINUITY, 0.0), difference)
+
 
 def jeffreys(passed: int, n: int) -> float:
     """Pass rate smoothed with a Jeffreys prior, never exactly 0 or 1."""
@@ -23,6 +32,11 @@ class Pair:
     n_s: int
     passed_b: int
     n_b: int
+
+
+def pooled_rate(p: Pair) -> float:
+    """Pass rate of both samples together, smoothed so it is never 0 or 1."""
+    return (p.passed_s + p.passed_b + 1) / (p.n_s + p.n_b + 2)
 
 
 @dataclass(frozen=True)
@@ -45,9 +59,11 @@ class ScopeTest:
 def scope_test(pairs: Iterable[Pair]) -> ScopeTest:
     """Compare observed passes with those expected under "no change".
 
-    The expectation uses the raw baseline rate (unbiased); the variance uses the
-    Jeffreys-smoothed rate, so the test stays finite for one run per case and
-    for baselines at 100 %.
+    The expectation uses the raw baseline rate (unbiased). The variance uses the
+    rate of both samples pooled, as "no change" assumes, smoothed (+1/+2) so it
+    stays positive for one run per case and for rates at 0 or 100 %. A variance
+    from the baseline alone collapses when a short baseline happens to look
+    perfect and makes small families raise false alarms.
     """
     num = var = 0.0
     rate_s = rate_b = 0.0
@@ -56,15 +72,15 @@ def scope_test(pairs: Iterable[Pair]) -> ScopeTest:
         if p.n_s == 0 or p.n_b == 0:
             continue
         raw_b = p.passed_b / p.n_b
-        smooth_b = jeffreys(p.passed_b, p.n_b)
+        pooled = pooled_rate(p)
         num += p.passed_s - p.n_s * raw_b
-        var += p.n_s * smooth_b * (1 - smooth_b) * (1 + p.n_s / p.n_b)
+        var += p.n_s * pooled * (1 - pooled) * (1 + p.n_s / p.n_b)
         rate_s += p.passed_s / p.n_s
         rate_b += raw_b
         cases += 1
     if cases == 0:
         return ScopeTest(0, math.nan, math.nan, 0.0)
-    return ScopeTest(cases, rate_s / cases, rate_b / cases, num / math.sqrt(var))
+    return ScopeTest(cases, rate_s / cases, rate_b / cases, continuity(num) / math.sqrt(var))
 
 
 def z_threshold(alpha: float) -> float:
