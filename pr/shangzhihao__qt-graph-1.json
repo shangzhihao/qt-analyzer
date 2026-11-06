@@ -216,12 +216,12 @@
     }
   },
   "flagged": [],
-  "head_sha": "ab1bace9d95e11ec982d86b589a2aa36c34d9f70",
+  "head_sha": "e50e1d26d5893b85a6cf5237da1bb854b3ad8fb5",
   "improved": [],
   "number": 1,
   "repo": "shangzhihao/qt-graph",
-  "run_id": "graph-42218672364",
-  "run_url": "https://github.com/shangzhihao/qt-graph/actions/runs/42218672364",
+  "run_id": "graph-42218937769",
+  "run_url": "https://github.com/shangzhihao/qt-graph/actions/runs/42218937769",
   "status": "ok",
   "suspected_cases": []
 }
