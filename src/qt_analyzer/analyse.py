@@ -265,6 +265,7 @@ class PrResult:
     improved: list[str]
     suspected_cases: list[str]
     comparison: Comparison | None
+    run_url: str = ""
 
 
 @dataclass
@@ -445,6 +446,7 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
                     [],
                     [],
                     None,
+                    m.producer.get("run_url", ""),
                 )
             )
             continue
@@ -473,6 +475,7 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
                 comparison.improved_scopes(config.pr_alpha),
                 suspected,
                 comparison,
+                m.producer.get("run_url", ""),
             )
         )
     return results

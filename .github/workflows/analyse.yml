@@ -1,0 +1,62 @@
+# Ingest every run not yet complete, analyse, publish to the qt-results branch
+# and update PR comments. A dispatch only wakes this up; each pass handles
+# everything outstanding, so dropped or coalesced dispatches lose nothing.
+name: analyse
+
+on:
+  repository_dispatch:
+    types: [qt-wake]
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: qt-results
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out the results branch
+        run: |
+          if git ls-remote --exit-code origin qt-results >/dev/null; then
+            git fetch -q origin qt-results
+            git worktree add -q -B qt-results results origin/qt-results
+          else
+            git worktree add -q --orphan -b qt-results results
+          fi
+      - uses: astral-sh/setup-uv@v10.3.0
+      - run: uv sync -q
+      - name: Ingest and analyse
+        env:
+          QT_PAT: ${{ secrets.QT_PAT }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          uv run qt-analyzer ingest --github shangzhihao/qt-graph --results results
+          uv run qt-analyzer analyse --results results | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Update PR comments
+        continue-on-error: true
+        env:
+          QT_PAT: ${{ secrets.QT_PAT }}
+        run: uv run qt-analyzer comment --results results
+      - name: Publish results
+        working-directory: results
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update results"
+          for _ in 1 2 3; do
+            if git push -q origin qt-results; then exit 0; fi
+            git pull -q --rebase origin qt-results
+          done
+          exit 1

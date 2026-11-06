@@ -1,13 +1,15 @@
-"""Command line: `qt-analyzer ingest|analyse|status|simulate`."""
+"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate`."""
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 from qt_analyzer.analyse import Analysis, Config, analyse, pass_rate, save
 from qt_analyzer.ingest import ingest_pending
+from qt_analyzer.report import github_request, sync_pr_comments
 from qt_analyzer.simulate import (
     format_table,
     population_from_results,
@@ -15,6 +17,7 @@ from qt_analyzer.simulate import (
     synthetic_population,
 )
 from qt_analyzer.stores import LocalDirStore, ResultStore
+from qt_analyzer.stores.github import GitHubArtifactsStore
 
 
 def _short(key: str | None) -> str:
@@ -63,10 +66,17 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_ingest = sub.add_parser("ingest", help="ingest every run not yet complete")
-    p_ingest.add_argument("--logs", type=Path, required=True, help="LocalDirStore root")
+    source = p_ingest.add_mutually_exclusive_group(required=True)
+    source.add_argument("--logs", type=Path, help="LocalDirStore root")
+    source.add_argument("--github", metavar="OWNER/REPO", help="read runs from Actions artifacts")
+    p_ingest.add_argument("--cache", type=Path, default=Path(".qt-cache"))
     p_ingest.add_argument("--results", type=Path, required=True, help="results directory")
 
-    for name, text in (("analyse", "analyse and write results"), ("status", "print a summary")):
+    for name, text in (
+        ("analyse", "analyse and write results"),
+        ("status", "print a summary"),
+        ("comment", "create or update PR comments (needs QT_PAT)"),
+    ):
         p = sub.add_parser(name, help=text)
         p.add_argument("--results", type=Path, required=True, help="results directory")
         p.add_argument("--config", type=Path, default=Path("analyzer.toml"))
@@ -114,7 +124,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     results = ResultStore(args.results)
     if args.command == "ingest":
-        report = ingest_pending(LocalDirStore(args.logs), results)
+        token = os.environ.get("QT_PAT") or os.environ.get("GITHUB_TOKEN")
+        logs = (
+            GitHubArtifactsStore(args.github, token, args.cache)
+            if args.github
+            else LocalDirStore(args.logs)
+        )
+        report = ingest_pending(logs, results)
         print(
             f"complete: {len(report.complete)}  incomplete: {len(report.incomplete)}  "
             f"rejected: {len(report.rejected)}"
@@ -123,6 +139,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {run_id}: {results.load_index()[run_id].detail}")
         return 0
     analysis = analyse(results, Config.load(args.config))
+    if args.command == "comment":
+        token = os.environ.get("QT_PAT")
+        if not token:
+            print("QT_PAT is not set", file=sys.stderr)
+            return 1
+        for key in sync_pr_comments(results, analysis.prs, github_request(token)):
+            print(f"commented on {key}")
+        return 0
     if args.command == "analyse":
         save(results, analysis)
     print_status(analysis)
