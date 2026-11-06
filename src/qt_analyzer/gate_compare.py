@@ -97,31 +97,57 @@ def format_verdicts(verdicts: dict[str, Verdict]) -> str:
 
 
 @dataclass(frozen=True)
+class Choice:
+    """What a trial picked: three topics (with >= 10 cases where possible) and
+    five cases that usually pass."""
+
+    topics: list[str]
+    cases: set[str]
+
+
+@dataclass(frozen=True)
 class Scenario:
     name: str
     expect: str  # "regression" | "improvement" | "false regression" | "false improvement"
-    shift: Callable[[SimCase, random.Random, list[str]], float]  # new pass rate
+    shift: Callable[[SimCase, Choice], float]  # new pass rate
 
 
 def _clip(p: float) -> float:
     return min(1.0, max(0.0, p))
 
 
+def _topic(c: SimCase, choice: Choice, delta: float, which: slice = slice(0, 1)) -> float:
+    return _clip(c.p + delta) if c.family in choice.topics[which] else c.p
+
+
 SCENARIOS: list[Scenario] = [
-    Scenario("unchanged", "false regression", lambda c, rng, fams: c.p),
-    Scenario("unchanged ", "false improvement", lambda c, rng, fams: c.p),
-    Scenario("all topics -5 pts", "regression", lambda c, rng, fams: _clip(c.p - 0.05)),
-    Scenario("all topics -10 pts", "regression", lambda c, rng, fams: _clip(c.p - 0.10)),
-    Scenario("one topic -30 pts", "regression",
-             lambda c, rng, fams: _clip(c.p - 0.30) if c.family == fams[0] else c.p),
+    Scenario("unchanged", "false regression", lambda c, ch: c.p),
+    Scenario("unchanged ", "false improvement", lambda c, ch: c.p),
+    Scenario("all topics -2 pts", "regression", lambda c, ch: _clip(c.p - 0.02)),
+    Scenario("all topics -5 pts", "regression", lambda c, ch: _clip(c.p - 0.05)),
+    Scenario("one topic -15 pts", "regression", lambda c, ch: _topic(c, ch, -0.15)),
+    Scenario("one topic -30 pts", "regression", lambda c, ch: _topic(c, ch, -0.30)),
     Scenario("one topic -30, two +15 (masked)", "regression",
-             lambda c, rng, fams: _clip(c.p - 0.30) if c.family == fams[0]
-             else _clip(c.p + 0.15) if c.family in fams[1:3] else c.p),
+             lambda c, ch: _topic(c, ch, -0.30) if c.family == ch.topics[0]
+             else _topic(c, ch, 0.15, slice(1, 3))),
     Scenario("flaky cases -30 pts", "regression",
-             lambda c, rng, fams: _clip(c.p - 0.30) if 0.05 < c.p < 0.95 else c.p),
-    Scenario("one topic +30 pts", "improvement",
-             lambda c, rng, fams: _clip(c.p + 0.30) if c.family == fams[0] else c.p),
+             lambda c, ch: _clip(c.p - 0.30) if 0.05 < c.p < 0.95 else c.p),
+    Scenario("always-pass cases -5 pts", "regression",
+             lambda c, ch: 0.95 if c.p == 1.0 else c.p),
+    Scenario("five cases collapse to 0%", "regression",
+             lambda c, ch: 0.0 if c.key in ch.cases else c.p),
+    Scenario("one topic +30 pts", "improvement", lambda c, ch: _topic(c, ch, 0.30)),
 ]  # fmt: skip
+
+
+def _choose(cases: list[SimCase], rng: random.Random) -> Choice:
+    sizes: dict[str, int] = {}
+    for c in cases:
+        sizes[c.family] = sizes.get(c.family, 0) + 1
+    big = sorted(f for f, n in sizes.items() if n >= 10) or sorted(sizes)
+    topics = rng.sample(big, min(3, len(big)))
+    likely = [c.key for c in cases if c.p >= 0.5]
+    return Choice(topics, set(rng.sample(likely, min(5, len(likely)))))
 
 
 def _draw(cases: list[SimCase], rates: list[float], runs: int, rng: random.Random) -> Counts:
@@ -143,15 +169,14 @@ def benchmark(
 ) -> dict[str, dict[str, float]]:
     """scenario -> gate -> share of trials where the gate flagged what is expected."""
     cases = population or synthetic_population()
-    families = sorted({c.family for c in cases})
     rng = random.Random(seed)
     table: dict[str, dict[str, float]] = {}
     for scenario in SCENARIOS:
         hits = dict.fromkeys(gates, 0)
         for _ in range(trials):
-            chosen = rng.sample(families, 3)
+            choice = _choose(cases, rng)
             base = _draw(cases, [c.p for c in cases], baseline_runs, rng)
-            new = _draw(cases, [scenario.shift(c, rng, chosen) for c in cases], runs, rng)
+            new = _draw(cases, [scenario.shift(c, choice) for c in cases], runs, rng)
             comparison = compare(new, base)
             for name, gate in gates.items():
                 v = gate.judge(comparison)

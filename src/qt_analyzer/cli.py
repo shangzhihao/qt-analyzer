@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -13,6 +14,7 @@ from qt_analyzer.gates import available_gates
 from qt_analyzer.ingest import ingest_pending
 from qt_analyzer.report import github_request, sync_pr_comments
 from qt_analyzer.simulate import (
+    SimCase,
     format_table,
     population_from_results,
     sweep,
@@ -109,7 +111,9 @@ def main(argv: list[str] | None = None) -> int:
     p_gates.add_argument("--trials", type=int, default=300)
     p_gates.add_argument("--runs", type=int, default=1, help="new runs per case")
     p_gates.add_argument("--baseline-runs", type=int, default=20)
-    p_gates.add_argument("--population", type=Path, help="results directory (largest run)")
+    population = p_gates.add_mutually_exclusive_group()
+    population.add_argument("--population", type=Path, help="results directory (largest run)")
+    population.add_argument("--population-json", type=Path, help='JSON list of {"p", "family"}')
     p_gates.add_argument("--seed", type=int, default=1)
     p_gates.add_argument(
         "--equal-false-alarms",
@@ -117,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         metavar="RATE",
         help="tune every gate to this false-regression rate before comparing",
     )
+    p_gates.add_argument("--tune-trials", type=int, default=400, help="unchanged draws for tuning")
     p_gates.add_argument("--config", type=Path, default=Path("analyzer.toml"))
 
     args = parser.parse_args(argv)
@@ -138,13 +143,16 @@ def main(argv: list[str] | None = None) -> int:
                 print(gate_compare.format_verdicts(gate_compare.judge_all(make(), gates)))
                 print()
             return 0
-        population = (
-            population_from_results(ResultStore(args.population)) if args.population else None
-        )
+        population = None
+        if args.population:
+            population = population_from_results(ResultStore(args.population))
+        elif args.population_json:
+            rows = json.loads(args.population_json.read_text())
+            population = [SimCase(f"case{i}", r["family"], r["p"]) for i, r in enumerate(rows)]
         if args.equal_false_alarms is not None:
             gates, notes = gate_compare.equalise_false_alarms(
                 gates, args.equal_false_alarms, population=population,
-                baseline_runs=args.baseline_runs, runs=args.runs,
+                baseline_runs=args.baseline_runs, runs=args.runs, trials=args.tune_trials,
             )  # fmt: skip
             print(f"tuned to {args.equal_false_alarms:.0%} false regressions on unchanged data:")
             for name, note in notes.items():
