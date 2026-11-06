@@ -54,3 +54,15 @@ def test_benjamini_hochberg():
 def test_wilson_interval_contains_rate():
     low, high = wilson_interval(18, 20)
     assert low < 0.9 < high
+
+
+def test_a_short_perfect_baseline_does_not_make_normal_noise_look_extreme():
+    # A case that really passes ~80 %: a 10-run baseline came out 10/10 and the
+    # nightly 6/10. With a baseline-only variance this was z ≈ -4 (a false
+    # alarm); the pooled variance and the continuity correction keep it modest.
+    assert scope_test([Pair(6, 10, 10, 10)]).z > -2.5
+
+
+def test_continuity_correction_keeps_no_change_at_zero():
+    assert scope_test([Pair(5, 10, 10, 20)]).z == 0
+    assert scope_test([Pair(5, 10, 11, 20)]).z == 0  # within half a pass of expected

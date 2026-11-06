@@ -5,7 +5,6 @@ description = "Analyse pytest report logs of a non-deterministic test suite, sta
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.5.4",
     "pyarrow>=17",
 ]
 
