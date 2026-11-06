@@ -215,17 +215,35 @@ class PoissonBinomialResult:
     score: float  # P(passes <= observed) under the baseline probabilities
 
 
-def poisson_binomial(
-    observations: Sequence[Observation], significance_level: float = 0.05
-) -> PoissonBinomialResult:
-    """Same computation as testimate's `PoissonBinomialGate.evaluate` (offset 0)."""
+def poisson_binomial_mass(observations: Sequence[Observation]) -> list[float]:
+    """The Poisson-binomial distribution of total passes (testimate's recurrence).
+
+    Runs with probability exactly 0 or 1 only shift the distribution, so they
+    are applied as a shift instead of through the quadratic update: same result,
+    much faster when many cases always pass.
+    """
+    certain = sum(o.run_count for o in observations if o.probability == 1.0)
     mass = [1.0]
     for o in observations:
+        if o.probability in (0.0, 1.0):
+            continue
         for _ in range(o.run_count):
             mass.append(0.0)
             for passes in range(len(mass) - 1, 0, -1):
                 mass[passes] = mass[passes] * (1 - o.probability) + mass[passes - 1] * o.probability
             mass[0] *= 1 - o.probability
+    never = sum(o.run_count for o in observations if o.probability == 0.0)
+    return [0.0] * certain + mass + [0.0] * never
+
+
+def poisson_binomial(
+    observations: Sequence[Observation],
+    significance_level: float = 0.05,
+    mass: list[float] | None = None,
+) -> PoissonBinomialResult:
+    """Same computation as testimate's `PoissonBinomialGate.evaluate` (offset 0)."""
+    if mass is None:
+        mass = poisson_binomial_mass(observations)
     run_count = sum(o.run_count for o in observations)
     pass_count = sum(o.pass_count for o in observations)
     cumulative = 0.0
@@ -266,7 +284,12 @@ class PoissonBinomialGate:
         verdict = Verdict()
         if not observations:
             return verdict
-        r = poisson_binomial(observations, self.significance_level)
+        # The distribution depends only on the baseline rates: compute it once per
+        # comparison, so tuning the level (benchmark) does not repeat the work.
+        mass = comparison.__dict__.get("_pb_mass")
+        if mass is None:
+            mass = comparison.__dict__["_pb_mass"] = poisson_binomial_mass(observations)
+        r = poisson_binomial(observations, self.significance_level, mass)
         verdict.detail["overall"] = (
             f"{r.pass_count}/{r.run_count} passes, expected {r.expected_passes:.1f}, "
             f"minimum accepted {r.minimum_accepted_passes}"
@@ -398,3 +421,7 @@ class ZScoreSplitGate:
             elif z >= gain_cut:
                 verdict.improved.append(scope)
         return verdict
+
+
+# Candidate gates under exploration register themselves like any user gate.
+from qt_analyzer import candidate_gates  # noqa: E402, F401

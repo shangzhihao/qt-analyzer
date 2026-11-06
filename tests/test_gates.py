@@ -133,7 +133,7 @@ def test_zscore_split_catches_broad_local_and_flaky_drops():
     table = benchmark(build_gates(["zscore_split"], {}), trials=60, seed=5)
     row = {name: t["zscore_split"] for name, t in table.items()}
     assert row["unchanged"] <= 0.1
-    for scenario in ("all topics -10 pts", "one topic -30 pts", "flaky cases -30 pts"):
+    for scenario in ("all topics -5 pts", "one topic -30 pts", "flaky cases -30 pts"):
         assert row[scenario] >= 0.4, scenario
 
 
@@ -155,3 +155,26 @@ def test_equal_false_alarm_tuning_reaches_the_target_without_exceeding_it():
     for name in gates:
         assert table["unchanged"][name] <= 0.2, name
         assert notes[name].startswith("level")
+
+
+def test_candidate_gates_are_registered():
+    assert {"higher_criticism", "min_p_cases", "zscore_split_hc", "zscore_strata"} <= set(
+        available_gates()
+    )
+
+
+def test_higher_criticism_statistic():
+    from qt_analyzer.candidate_gates import higher_criticism
+
+    assert higher_criticism([]) == 0.0
+    uniform = [(i + 0.5) / 100 for i in range(100)]
+    assert higher_criticism(uniform) < 1.0
+    sparse = [0.011] * 5 + uniform[5:]  # HC+ ignores p < 1/k
+    assert higher_criticism(sparse) > 3.0
+
+
+def test_zscore_strata_catches_reliable_cases_breaking():
+    table = benchmark(build_gates(["zscore_split", "zscore_strata"], {}), trials=60, seed=11)
+    row = table["always-pass cases -5 pts"]
+    assert row["zscore_strata"] >= row["zscore_split"]
+    assert table["unchanged"]["zscore_strata"] <= 0.1
