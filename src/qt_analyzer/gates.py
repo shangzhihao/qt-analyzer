@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from statistics import NormalDist
 from typing import TYPE_CHECKING, Any, Protocol
 
-from qt_analyzer.stats import z_threshold
+from qt_analyzer.stats import Pair, scope_test, z_threshold
 
 if TYPE_CHECKING:
     from qt_analyzer.analyse import CaseResult, Comparison
@@ -56,6 +56,10 @@ class Verdict:
 
 class Gate(Protocol):
     def judge(self, comparison: Comparison) -> Verdict: ...
+
+    # Optional: the same gate at another sensitivity, `level` in (0, 1), higher =
+    # more alarms. Lets the benchmark compare gates at equal false-alarm rates.
+    # def tuned(self, level: float) -> Gate: ...
 
 
 _REGISTRY: dict[str, Callable[..., Gate]] = {}
@@ -101,6 +105,9 @@ class ZScoreGate:
     alpha: float = 0.05
     z: float | None = None
 
+    def tuned(self, level: float) -> ZScoreGate:
+        return ZScoreGate(alpha=level)
+
     def judge(self, comparison: Comparison) -> Verdict:
         cut = (
             self.z
@@ -135,7 +142,9 @@ class ThresholdResult:
     threshold: float
 
 
-def testimate_threshold(reference: Sequence[float], observed: Sequence[float]) -> ThresholdResult:
+def testimate_threshold(
+    reference: Sequence[float], observed: Sequence[float], margin: float = THRESHOLD_STD_DEV_MARGIN
+) -> ThresholdResult:
     """testimate: ω = p³; y = Σω(1-x)/Σω; pass if y <= y_ref + 10·σ.
 
     `reference` are the reference pass probabilities (testimate's p_short_term),
@@ -148,14 +157,23 @@ def testimate_threshold(reference: Sequence[float], observed: Sequence[float]) -
         math.sqrt(sum(w * w * p * (1 - p) for w, p in zip(omega, reference, strict=True))) / norm
     )
     y = sum(w * (1 - x) for w, x in zip(omega, observed, strict=True)) / norm
-    threshold = y_ref + THRESHOLD_STD_DEV_MARGIN * sigma
+    threshold = y_ref + margin * sigma
     return ThresholdResult(y <= threshold, y, y_ref, threshold)
 
 
 @register_gate("testimate_threshold")
 @dataclass(frozen=True)
 class TestimateThresholdGate:
-    """testimate's gate in use, with the baseline rates as reference."""
+    """testimate's gate in use, with the baseline rates as reference.
+
+    `margin` is testimate's 10 standard deviations; the benchmark's equal
+    false-alarm mode tunes it (that variant is no longer testimate's setting).
+    """
+
+    margin: float = THRESHOLD_STD_DEV_MARGIN
+
+    def tuned(self, level: float) -> TestimateThresholdGate:
+        return TestimateThresholdGate(margin=-_NORMAL.inv_cdf(level))
 
     def judge(self, comparison: Comparison) -> Verdict:
         cases = [c for c in comparison.cases if c.judged_s and c.judged_b]
@@ -163,7 +181,9 @@ class TestimateThresholdGate:
         if not cases:
             return verdict
         r = testimate_threshold(
-            [c.passed_b / c.judged_b for c in cases], [c.passed_s / c.judged_s for c in cases]
+            [c.passed_b / c.judged_b for c in cases],
+            [c.passed_s / c.judged_s for c in cases],
+            self.margin,
         )
         verdict.detail["overall"] = (
             f"weighted failure rate {r.y:.4f}, reference {r.y_reference:.4f}, "
@@ -234,6 +254,9 @@ class PoissonBinomialGate:
 
     significance_level: float = 0.05
 
+    def tuned(self, level: float) -> PoissonBinomialGate:
+        return PoissonBinomialGate(significance_level=level)
+
     def judge(self, comparison: Comparison) -> Verdict:
         observations = [
             Observation(c.passed_b / c.judged_b, c.passed_s, c.judged_s)
@@ -274,6 +297,9 @@ class BayesGate:
     delta: float = 0.03
     probability: float = 0.99
 
+    def tuned(self, level: float) -> BayesGate:
+        return BayesGate(delta=self.delta, probability=1 - level)
+
     def judge(self, comparison: Comparison) -> Verdict:
         by_scope: dict[str, list[CaseResult]] = defaultdict(list)
         for case in comparison.cases:
@@ -307,5 +333,68 @@ class BayesGate:
             if z_drop <= cut:
                 verdict.regressed.append(scope)
             elif z_gain >= -cut:
+                verdict.improved.append(scope)
+        return verdict
+
+
+# ---------------------------------------------------------------------------
+# zscore_split: the zscore statistic with the false-alarm budget split on purpose
+
+
+def _flaky(case: CaseResult) -> bool:
+    rate = case.passed_b / case.judged_b
+    return 0.05 < rate < 0.95
+
+
+@register_gate("zscore_split")
+@dataclass(frozen=True)
+class ZScoreSplitGate:
+    """zscore's statistic, with the budget split between the total, the flaky
+    cases and the topics, and a separate (stricter) budget for improvements.
+
+    A single test of the total (where the Poisson-binomial gate spends all of its
+    budget) catches broad drops; per-topic tests catch local and masked drops; a
+    scope of the flaky cases (baseline rate between 5 % and 95 %) catches drops
+    spread over uncertain cases. `alpha` is the regression budget per comparison,
+    `improvement_alpha` the improvement budget; the shares say how each is split.
+    """
+
+    alpha: float = 0.05
+    improvement_alpha: float = 0.01
+    total_share: float = 0.5
+    flaky_share: float = 0.2  # the rest is split evenly over the topics
+
+    def tuned(self, level: float) -> ZScoreSplitGate:
+        ratio = self.improvement_alpha / self.alpha
+        return ZScoreSplitGate(level, level * ratio, self.total_share, self.flaky_share)
+
+    def _scopes(self, comparison: Comparison) -> list[tuple[str, float, float]]:
+        """(scope, z, share of the budget)."""
+        topics = sorted(comparison.families.items())
+        topic_share = (1 - self.total_share - self.flaky_share) / max(len(topics), 1)
+        flaky = [
+            Pair(c.passed_s, c.judged_s, c.passed_b, c.judged_b)
+            for c in comparison.cases
+            if c.judged_s and c.judged_b and _flaky(c)
+        ]
+        scopes = [("overall", comparison.overall.z, self.total_share)]
+        if flaky:
+            scopes.append(("flaky cases", scope_test(flaky).z, self.flaky_share))
+        scopes += [(name, t.z, topic_share) for name, t in topics if t.cases]
+        return scopes
+
+    def judge(self, comparison: Comparison) -> Verdict:
+        verdict = Verdict()
+        if not comparison.overall.cases:
+            return verdict
+        for scope, z, share in self._scopes(comparison):
+            drop_cut = z_threshold(self.alpha * share)
+            gain_cut = -z_threshold(self.improvement_alpha * share)
+            verdict.detail[scope] = (
+                f"z = {z:+.2f} (drop at {drop_cut:.2f}, gain at +{gain_cut:.2f})"
+            )
+            if z <= drop_cut:
+                verdict.regressed.append(scope)
+            elif z >= gain_cut:
                 verdict.improved.append(scope)
         return verdict

@@ -16,6 +16,7 @@ flagged what the scenario contains; for "unchanged" it is the false-alarm rate.
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -98,7 +99,7 @@ def format_verdicts(verdicts: dict[str, Verdict]) -> str:
 @dataclass(frozen=True)
 class Scenario:
     name: str
-    expect: str  # "regression" | "improvement" | "nothing"
+    expect: str  # "regression" | "improvement" | "false regression" | "false improvement"
     shift: Callable[[SimCase, random.Random, list[str]], float]  # new pass rate
 
 
@@ -107,7 +108,8 @@ def _clip(p: float) -> float:
 
 
 SCENARIOS: list[Scenario] = [
-    Scenario("unchanged", "nothing", lambda c, rng, fams: c.p),
+    Scenario("unchanged", "false regression", lambda c, rng, fams: c.p),
+    Scenario("unchanged ", "false improvement", lambda c, rng, fams: c.p),
     Scenario("all topics -5 pts", "regression", lambda c, rng, fams: _clip(c.p - 0.05)),
     Scenario("all topics -10 pts", "regression", lambda c, rng, fams: _clip(c.p - 0.10)),
     Scenario("one topic -30 pts", "regression",
@@ -153,9 +155,9 @@ def benchmark(
             comparison = compare(new, base)
             for name, gate in gates.items():
                 v = gate.judge(comparison)
-                if scenario.expect == "improvement":
+                if scenario.expect.endswith("improvement"):
                     hits[name] += bool(v.improved)
-                else:  # regressions and false alarms
+                else:
                     hits[name] += bool(v.regressed)
         table[scenario.name] = {name: hits[name] / trials for name in gates}
     return table
@@ -167,9 +169,55 @@ def format_benchmark(table: dict[str, dict[str, float]]) -> str:
     lines = [f"{'scenario':34}" + "".join(f"{g:>{width}}" for g in gates)]
     for scenario in SCENARIOS:
         row = table[scenario.name]
-        label = scenario.name + (" (false alarms)" if scenario.expect == "nothing" else "")
+        label = scenario.name.strip()
+        if scenario.expect.startswith("false"):
+            label += f" ({scenario.expect}s)"
         lines.append(f"{label:34}" + "".join(f"{row[g]:>{width}.0%}" for g in gates))
     return "\n".join(lines)
+
+
+def equalise_false_alarms(
+    gates: dict[str, Gate],
+    target: float,
+    *,
+    population: list[SimCase] | None = None,
+    trials: int = 400,
+    baseline_runs: int = 20,
+    runs: int = 1,
+    seed: int = 1000,
+) -> tuple[dict[str, Gate], dict[str, str]]:
+    """Tune every gate that has `tuned(level)` to `target` false regressions on
+    unchanged data; return the tuned gates and a note per gate.
+
+    The unchanged comparisons are drawn once (with a seed different from the
+    benchmark's) and reused for every level, so the search is exact and cheap.
+    """
+    cases = population or synthetic_population()
+    rng = random.Random(seed)
+    nulls = []
+    for _ in range(trials):
+        base = _draw(cases, [c.p for c in cases], baseline_runs, rng)
+        nulls.append(compare(_draw(cases, [c.p for c in cases], runs, rng), base))
+
+    def rate(gate: Gate) -> float:
+        return sum(bool(gate.judge(c).regressed) for c in nulls) / trials
+
+    tuned: dict[str, Gate] = {}
+    notes: dict[str, str] = {}
+    for name, gate in gates.items():
+        if not hasattr(gate, "tuned"):
+            tuned[name], notes[name] = gate, "not tunable; as configured"
+            continue
+        lo, hi = -7.0, math.log10(0.99)  # log10(level): lo raises no more than target
+        for _ in range(20):
+            mid = (lo + hi) / 2
+            if rate(gate.tuned(10**mid)) <= target:
+                lo = mid
+            else:
+                hi = mid
+        tuned[name] = gate.tuned(10**lo)
+        notes[name] = f"level {10**lo:.2e}"
+    return tuned, notes
 
 
 def build_gates(names: Sequence[str] | None, params: dict[str, dict]) -> dict[str, Gate]:

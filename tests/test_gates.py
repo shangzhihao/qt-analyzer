@@ -127,3 +127,31 @@ def test_the_configured_gate_decides_pr_results(tmp_path):
     s.pr("graph", 5, "g1", "h1", with_family(cases, "family2", 0.1), "2026-11-03T01:00:00Z")
     (pr,) = s.analyse(Config(gate="bayes")).prs
     assert pr.status == "regressed" and "family2" in pr.flagged
+
+
+def test_zscore_split_catches_broad_local_and_flaky_drops():
+    table = benchmark(build_gates(["zscore_split"], {}), trials=60, seed=5)
+    row = {name: t["zscore_split"] for name, t in table.items()}
+    assert row["unchanged"] <= 0.1
+    for scenario in ("all topics -10 pts", "one topic -30 pts", "flaky cases -30 pts"):
+        assert row[scenario] >= 0.4, scenario
+
+
+def test_zscore_split_has_a_stricter_budget_for_improvements():
+    gate = make_gate("zscore_split", {})
+    (scope, _, share), *_ = gate._scopes(EXAMPLES["improvement"][1]())
+    from qt_analyzer.stats import z_threshold
+
+    assert scope == "overall"
+    assert -z_threshold(gate.improvement_alpha * share) > -z_threshold(gate.alpha * share)
+
+
+def test_equal_false_alarm_tuning_reaches_the_target_without_exceeding_it():
+    from qt_analyzer.gate_compare import equalise_false_alarms
+
+    gates, notes = equalise_false_alarms(build_gates(["poisson_binomial", "zscore_split"], {}),
+                                         0.1, trials=80, seed=7)  # fmt: skip
+    table = benchmark(gates, trials=80, seed=8)
+    for name in gates:
+        assert table["unchanged"][name] <= 0.2, name
+        assert notes[name].startswith("level")
