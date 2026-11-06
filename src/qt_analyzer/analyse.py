@@ -32,9 +32,11 @@ CaseId = tuple[str, str]  # (case_key, definition_hash)
 class Config:
     pool_k: int = 5
     push_alpha_per_state: float = 0.05
-    nightly_alpha_per_state: float = 0.01
-    nightly_case_fdr: float = 0.05
-    reference_alpha_per_state: float = 0.01
+    # Nightly step and drift tests confirm a drop when a scope's z is at or below
+    # this. -2.5 gave about 4 false issues per month on the real suite's
+    # distribution (60 nightly states a month, 10 runs).
+    nightly_z: float = -2.5
+    nightly_case_fdr: float = 0.05  # cases are listed as evidence only
     # The reference moves to a state only if it shows no hint of a drop at this
     # looser level, so small steps cannot drag it down one by one.
     reference_move_alpha_per_state: float = 0.2
@@ -127,6 +129,11 @@ class Comparison:
         threshold = z_threshold(alpha_per_state / (1 + len(self.families)))
         scopes = [("overall", self.overall)] + sorted(self.families.items())
         return [name for name, t in scopes if t.cases and t.z <= threshold]
+
+    def scopes_below(self, z: float) -> list[str]:
+        """Scopes whose z is at or below a fixed threshold."""
+        scopes = [("overall", self.overall)] + sorted(self.families.items())
+        return [name for name, t in scopes if t.cases and t.z <= z]
 
     def improved_scopes(self, alpha_per_state: float) -> list[str]:
         threshold = -z_threshold(alpha_per_state / (1 + len(self.families)))
@@ -369,13 +376,13 @@ def _nightly(entries: list[TimelineEntry], config: Config) -> tuple[list[Alert],
             continue
 
         step = compare(nightly, previous.counts["nightly"])
-        step_flagged = step.flagged_scopes(config.nightly_alpha_per_state)
+        step_flagged = step.scopes_below(config.nightly_z)
         cases_flagged = _case_flags(step, config.nightly_case_fdr)
         vs_ref = compare(nightly, reference.counts["nightly"])
-        ref_flagged = vs_ref.flagged_scopes(config.reference_alpha_per_state)
+        ref_flagged = vs_ref.scopes_below(config.nightly_z)
         suspect_range = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
 
-        new_drop = bool(step_flagged or cases_flagged)
+        new_drop = bool(step_flagged)  # cases are evidence, not a trigger
         if open_alert is None and ref_flagged:
             new_drop = True  # slow drift: no single step was large enough
         if new_drop:
