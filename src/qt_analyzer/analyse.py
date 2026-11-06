@@ -43,14 +43,22 @@ class Config:
     reference_move_alpha_per_state: float = 0.2
     pr_alpha: float = 0.05
     pr_case_p: float = 0.05
+    # Which gate algorithm decides (see gates.py). "zscore" uses the thresholds
+    # above per stage; other gates use their own settings from [gates.<name>].
+    gate: str = "zscore"
+    gate_params: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path | None) -> Config:
         if path is None or not path.exists():
             return cls()
         data = tomllib.loads(path.read_text())
-        known = {k: v for k, v in data.get("analysis", {}).items() if k in cls.__dataclass_fields__}
-        return cls(**known)
+        analysis = data.get("analysis", {})
+        known = {k: v for k, v in analysis.items() if k in cls.__dataclass_fields__}
+        from qt_analyzer.gates import load_gate_modules
+
+        load_gate_modules(analysis.get("gate_modules", []))
+        return cls(**known | {"gate_params": data.get("gates", {})})
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +186,23 @@ def compare(new: Counts, base: Counts) -> Comparison:
         cases,
         coverage,
     )
+
+
+def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str], list[str]]:
+    """(regressed, improved) scopes by the configured gate, for a stage
+    ("push", "nightly" or "pr")."""
+    if config.gate == "zscore":
+        if stage == "push":
+            alpha = config.push_alpha_per_state
+        elif stage == "nightly":
+            return comparison.scopes_below(config.nightly_z), []
+        else:
+            alpha = config.pr_alpha
+        return comparison.flagged_scopes(alpha), comparison.improved_scopes(alpha)
+    from qt_analyzer.gates import make_gate
+
+    verdict = make_gate(config.gate, config.gate_params.get(config.gate)).judge(comparison)
+    return verdict.regressed, verdict.improved
 
 
 # ---------------------------------------------------------------------------
@@ -354,13 +379,13 @@ def _push(entries: list[TimelineEntry], i: int, config: Config) -> PushResult:
     for j in measured:
         merge(base, entries[j].data.all_counts().items())
     comparison = compare(entries[i].data.counts["main"], base)
-    flagged = comparison.flagged_scopes(config.push_alpha_per_state)
+    flagged, improved = judge(comparison, "push", config)
     return PushResult(
         "suspected" if flagged else "ok",
         [entries[j].data.state.key for j in measured],
         suspect_range,
         flagged,
-        comparison.improved_scopes(config.push_alpha_per_state),
+        improved,
         comparison,
     )
 
@@ -444,9 +469,9 @@ def _decide(
 ) -> dict[str, Any]:
     data = entries[i].data
     key = data.state.key
-    step_flagged = step.scopes_below(config.nightly_z) if step else []
+    step_flagged = judge(step, "nightly", config)[0] if step else []
     cases_flagged = _case_flags(step, config.nightly_case_fdr) if step else []
-    ref_flagged = vs_ref.scopes_below(config.nightly_z) if vs_ref else []
+    ref_flagged = judge(vs_ref, "nightly", config)[0] if vs_ref else []
     effects: list[dict[str, Any]] = []
     if reference is None or step is None or vs_ref is None:
         verdict, reference_after = "first", data
@@ -474,6 +499,7 @@ def _decide(
         reference_flagged=ref_flagged,
         cases_flagged=cases_flagged,
         effects=effects,
+        gate=config.gate,
         nightly_z=config.nightly_z,
         config=config_hash(config),
     )
@@ -544,8 +570,7 @@ def _prs(
             flagged, improved = reported["flagged"], reported["improved"]
             suspected = reported["suspected_cases"]
         else:
-            flagged = comparison.flagged_scopes(config.pr_alpha)
-            improved = comparison.improved_scopes(config.pr_alpha)
+            flagged, improved = judge(comparison, "pr", config)
             suspected = sorted(
                 c.case_key
                 for c in comparison.cases
