@@ -1,0 +1,14 @@
+# Thresholds and windows for `qt-analyzer analyse`. Every key is optional.
+[analysis]
+# Earlier measured main states pooled into a baseline.
+pool_k = 5
+# Chance per state that noise alone is reported as a drop, split over the
+# overall scope and every family.
+push_alpha_per_state = 0.05      # 1-run signal: "suspected"
+nightly_alpha_per_state = 0.01   # 10-run step test: "confirmed"
+nightly_case_fdr = 0.05          # per-case false discovery rate (nightly)
+reference_alpha_per_state = 0.01 # drift against the last good state
+# The reference moves only if a state shows no hint of a drop at this level.
+reference_move_alpha_per_state = 0.2
+pr_alpha = 0.05                  # PR overall/family drop
+pr_case_p = 0.05                 # PR single case marked "suspected"
