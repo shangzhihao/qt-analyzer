@@ -1,4 +1,4 @@
-"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates`."""
+"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates|case`."""
 
 from __future__ import annotations
 
@@ -8,8 +8,9 @@ import os
 import sys
 from pathlib import Path
 
-from qt_analyzer import gate_compare
+from qt_analyzer import case_check, gate_compare
 from qt_analyzer.analyse import Analysis, Config, analyse, pass_rate, save
+from qt_analyzer.fetch import DEFAULT_REPO, fetch_results
 from qt_analyzer.gates import available_gates
 from qt_analyzer.ingest import ingest_pending
 from qt_analyzer.report import github_request, sync_pr_comments
@@ -124,7 +125,32 @@ def main(argv: list[str] | None = None) -> int:
     p_gates.add_argument("--tune-trials", type=int, default=400, help="unchanged draws for tuning")
     p_gates.add_argument("--config", type=Path, default=Path("analyzer.toml"))
 
+    p_case = sub.add_parser(
+        "case", help="regression or improvement of single test cases, from local runs"
+    )
+    p_case.add_argument("logs", nargs="+", type=Path, help="pytest --report-log files")
+    source = p_case.add_mutually_exclusive_group()
+    source.add_argument("--results", type=Path, help="local copy of the results")
+    source.add_argument("--fetch", action="store_true",
+                        help="download the published results (the default)")  # fmt: skip
+    p_case.add_argument("--repo", default=DEFAULT_REPO, help="repository that publishes results")
+    p_case.add_argument("--cache", type=Path, default=Path(".qt-cache"))
+    p_case.add_argument("--states", type=int, default=5, help="newest main states to pool")
+    p_case.add_argument("--alpha", type=float, default=0.05)
+    p_case.add_argument("--delta", type=float, default=0.10,
+                        help="change size for the runs-needed hint")  # fmt: skip
+
     args = parser.parse_args(argv)
+    if args.command == "case":
+        results_dir = args.results or fetch_results(args.cache, args.repo)
+        main_counts, states = case_check.main_counts(ResultStore(results_dir), args.states)
+        if not states:
+            print(f"no measured main states in {results_dir}", file=sys.stderr)
+            return 2
+        verdicts = case_check.check(case_check.local_counts(args.logs), main_counts,
+                                    alpha=args.alpha, delta=args.delta)  # fmt: skip
+        print(case_check.format_verdicts(verdicts, states, args.delta))
+        return 1 if any(v.verdict == "regression" for v in verdicts) else 0
     if args.command == "gates":
         config = Config.load(args.config)  # also imports gate_modules
         if args.list:

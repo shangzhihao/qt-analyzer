@@ -39,6 +39,32 @@ uv run qt-analyzer simulate --shifts 0,0.05,0.1,0.2 --push-runs 1 --nightly-runs
 
 Thresholds come from `analyzer.toml` (`[analysis]` table).
 
+## Checking single test cases locally
+
+In CI every case runs once, too few to judge one case. Locally one case can run
+many times; `case` compares those runs with the same case's history on main:
+
+```sh
+# in qt-graph, with your change: run the cases of interest 30 times
+uv run pytest tests/quality -k "taxes-03" --qt-runs 30 --report-log local.jsonl
+# in qt-analyzer
+uv run qt-analyzer case local.jsonl            # downloads the published results
+uv run qt-analyzer case local.jsonl --results path/to/qt-results
+```
+
+```
+test_answer[taxes-03]
+  main:   20/20 passed (100.0%, 95% CI 84%-100%)  from the last 1 main states
+  local:  17/30 passed (56.7%, 95% CI 39%-73%)
+  REGRESSION  (p = 0.00034, one-sided Fisher exact)
+```
+
+- Verdicts: `REGRESSION`, `IMPROVEMENT`, `no evidence of change` (with the number
+  of local runs that would detect a `--delta` drop), `test definition changed`,
+  `new test`. Several cases at once are corrected for multiple testing (Holm).
+- The baseline pools the newest `--states` measured main states.
+- Exit code 1 when any case regressed.
+
 ## Gate algorithms
 
 A gate decides whether a comparison (new state vs. baseline, paired by case)
