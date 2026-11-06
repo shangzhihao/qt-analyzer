@@ -1,4 +1,4 @@
-"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate`."""
+"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates`."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ import os
 import sys
 from pathlib import Path
 
+from qt_analyzer import gate_compare
 from qt_analyzer.analyse import Analysis, Config, analyse, pass_rate, save
+from qt_analyzer.gates import available_gates
 from qt_analyzer.ingest import ingest_pending
 from qt_analyzer.report import github_request, sync_pr_comments
 from qt_analyzer.simulate import (
@@ -98,7 +100,48 @@ def main(argv: list[str] | None = None) -> int:
     p_sim.add_argument("--seed", type=int, default=1)
     p_sim.add_argument("--config", type=Path, default=Path("analyzer.toml"))
 
+    p_gates = sub.add_parser("gates", help="compare gate algorithms")
+    what = p_gates.add_mutually_exclusive_group(required=True)
+    what.add_argument("--list", action="store_true", help="list registered gates")
+    what.add_argument("--example", choices=[*gate_compare.EXAMPLES, "all"])
+    what.add_argument("--benchmark", action="store_true", help="all scenarios, random trials")
+    p_gates.add_argument("--gates", help="comma-separated gate names (default: all)")
+    p_gates.add_argument("--trials", type=int, default=300)
+    p_gates.add_argument("--runs", type=int, default=1, help="new runs per case")
+    p_gates.add_argument("--baseline-runs", type=int, default=20)
+    p_gates.add_argument("--population", type=Path, help="results directory (largest run)")
+    p_gates.add_argument("--seed", type=int, default=1)
+    p_gates.add_argument("--config", type=Path, default=Path("analyzer.toml"))
+
     args = parser.parse_args(argv)
+    if args.command == "gates":
+        config = Config.load(args.config)  # also imports gate_modules
+        if args.list:
+            print("\n".join(available_gates()))
+            return 0
+        names = args.gates.split(",") if args.gates else None
+        gates = gate_compare.build_gates(names, config.gate_params)
+        if args.example:
+            chosen = (
+                gate_compare.EXAMPLES
+                if args.example == "all"
+                else {args.example: gate_compare.EXAMPLES[args.example]}
+            )
+            for name, (text, make) in chosen.items():
+                print(f"=== {name}: {text}")
+                print(gate_compare.format_verdicts(gate_compare.judge_all(make(), gates)))
+                print()
+            return 0
+        population = (
+            population_from_results(ResultStore(args.population)) if args.population else None
+        )
+        table = gate_compare.benchmark(gates, population=population, trials=args.trials,
+                                       baseline_runs=args.baseline_runs, runs=args.runs,
+                                       seed=args.seed)  # fmt: skip
+        print(f"{args.trials} trials per scenario; baseline {args.baseline_runs} runs, "
+              f"new {args.runs} run(s) per case")  # fmt: skip
+        print(gate_compare.format_benchmark(table))
+        return 0
     if args.command == "simulate":
         population = (
             population_from_results(ResultStore(args.population), args.run_id)

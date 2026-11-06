@@ -13,3 +13,17 @@ nightly_case_fdr = 0.05          # cases with q <= this are listed as evidence
 reference_move_alpha_per_state = 0.2
 pr_alpha = 0.05                  # PR overall/family drop
 pr_case_p = 0.05                 # PR single case marked "suspected"
+
+# Gate algorithm that makes the decisions: zscore (default; uses the thresholds
+# above), testimate_threshold, poisson_binomial, bayes, or one of your own.
+gate = "zscore"
+# Modules that register more gates with @register_gate (see gates.py).
+gate_modules = []
+
+# Settings per gate, passed as keyword arguments.
+[gates.bayes]
+delta = 0.03
+probability = 0.99
+
+[gates.poisson_binomial]
+significance_level = 0.05
