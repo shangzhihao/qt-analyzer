@@ -36,12 +36,17 @@ Thresholds come from `analyzer.toml` (`[analysis]` table).
 
 ## Contract
 
-A run directory holds:
+Schema version 2. A run directory holds:
 
-- `manifest.json`: run id, kind (`pr`, `main`, `nightly`), the tested state
-  (one version per component), runs per case, shard count, seed.
+- `manifest.json`: run id, kind (`pr`, `main`, `nightly`), the tested state (one
+  version per component, with its commit time, and for main states the
+  component that created it), runs per case, shard count, seed. A `pr` run also
+  names its **baseline**: the main state (component versions) to compare with.
+  Producers do not send a state key; the analyzer computes it.
 - `shard-<i>-of-<n>.jsonl.gz`: pytest `--report-log` output. Every test report
   carries the user properties `qt_case_key`, `qt_definition_hash`,
   `qt_family`, `qt_repeat` and `qt_hrid`.
 
-A run is analysed only when all `n` shards are present and finished.
+A run is analysed only when all `n` shards are present and finished. If a PR's
+baseline was never measured, it is compared with the nearest measured main
+state, and the PR comment says so.

@@ -273,6 +273,7 @@ class PrResult:
     suspected_cases: list[str]
     comparison: Comparison | None
     run_url: str = ""
+    nearest_baseline: bool = False  # the stated baseline was not measured
 
 
 @dataclass
@@ -424,6 +425,13 @@ def _nightly(entries: list[TimelineEntry], config: Config) -> tuple[list[Alert],
     return alerts, reference.state.key if reference else None
 
 
+def _nearest_measured(entries: list[TimelineEntry], before: str) -> int | None:
+    candidates = [
+        i for i, e in enumerate(entries) if e.data.measured and e.data.state.committed_at <= before
+    ]
+    return candidates[-1] if candidates else None
+
+
 def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> list[PrResult]:
     latest: dict[tuple[str, int], PrRun] = {}
     for run in runs:
@@ -437,10 +445,15 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
     for (repo, number), run in sorted(latest.items()):
         m, pr = run.manifest, run.manifest.pr
         assert pr is not None
-        shas = m.state.shas | {pr.component: pr.base_sha}
-        base_key = state_key(shas)
+        base_key = state_key(pr.baseline)
         i = position.get(base_key)
+        nearest = False
         if i is None or not entries[i].data.measured:
+            # The stated baseline was never measured: use the newest measured
+            # main state from before this PR run, and say so.
+            i = _nearest_measured(entries, m.created_at)
+            nearest = i is not None
+        if i is None:
             results.append(
                 PrResult(
                     repo,
@@ -477,12 +490,13 @@ def _prs(entries: list[TimelineEntry], runs: list[PrRun], config: Config) -> lis
                 pr.head_sha,
                 m.run_id,
                 "regressed" if flagged else "ok",
-                base_key,
+                entries[i].data.state.key,
                 flagged,
                 comparison.improved_scopes(config.pr_alpha),
                 suspected,
                 comparison,
                 m.producer.get("run_url", ""),
+                nearest,
             )
         )
     return results
