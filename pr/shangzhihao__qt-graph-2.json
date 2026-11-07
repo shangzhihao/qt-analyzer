@@ -1,6 +1,80 @@
 {
   "baseline": "sha256:d59d088d7426328e352ff269b2bd943c6a90664adc01353955a5d146f93602d2",
-  "comparison": null,
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.835,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 0.9850000000000001,
+        "rate_s": 1.0,
+        "z": 0.0
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.85,
+        "rate_s": 0.75,
+        "z": -1.055984204094071
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.905,
+        "rate_s": 0.9,
+        "z": -0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.8649999999999999,
+        "rate_s": 0.9,
+        "z": 0.1450726618300663
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.8800000000000001,
+        "rate_s": 0.85,
+        "z": -0.06358507844578747
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.905,
+        "rate_s": 0.85,
+        "z": -0.4057220595560336
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.95,
+        "rate_s": 1.0,
+        "z": 0.3531357254851618
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.72,
+        "rate_s": 0.8,
+        "z": 0.7924900886071324
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 0.9150000000000003,
+        "rate_s": 0.9,
+        "z": -0.0
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.8809999999999998,
+      "rate_s": 0.88,
+      "z": -0.0
+    }
+  },
   "flagged": [],
   "head_sha": "3d8944b383d0ffd8ef10d8491715dec1d37c7751",
   "improved": [],
@@ -9,6 +83,6 @@
   "repo": "shangzhihao/qt-graph",
   "run_id": "graph-42238601390",
   "run_url": "https://github.com/shangzhihao/qt-graph/actions/runs/42238601390",
-  "status": "baseline-pending",
+  "status": "ok",
   "suspected_cases": []
 }
