@@ -247,4 +247,9 @@ def equalise_false_alarms(
 
 def build_gates(names: Sequence[str] | None, params: dict[str, dict]) -> dict[str, Gate]:
     names = list(names) if names else available_gates()
-    return {name: make_gate(name, params.get(name)) for name in names}
+    stages = ("push", "nightly", "pr")  # per-stage sub-tables are for the analysis
+
+    def base(name: str) -> dict:
+        return {k: v for k, v in params.get(name, {}).items() if k not in stages}
+
+    return {name: make_gate(name, base(name)) for name in names}

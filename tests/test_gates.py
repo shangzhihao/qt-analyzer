@@ -178,3 +178,27 @@ def test_zscore_strata_catches_reliable_cases_breaking():
     row = table["always-pass cases -5 pts"]
     assert row["zscore_strata"] >= row["zscore_split"]
     assert table["unchanged"]["zscore_strata"] <= 0.1
+
+
+def test_stage_settings_override_the_gate_defaults():
+    from qt_analyzer.analyse import stage_params
+
+    params = {"zscore_strata": {"alpha": 0.05, "nightly": {"alpha": 0.3}}}
+    config = Config(gate="zscore_strata", gate_params=params)
+    assert stage_params(config, "nightly") == {"alpha": 0.3}
+    assert stage_params(config, "push") == {"alpha": 0.05}
+    assert stage_params(config, "pr") == {"alpha": 0.05}
+
+
+def test_analysis_with_zscore_strata_and_stage_settings(tmp_path):
+    cases = make_cases(4, 25, 0.9)
+    s = Scenario(tmp_path, cases)
+    for i in range(1, 4):
+        s.commit("graph", f"g{i}")
+    bad = s.commit("data", "d1", with_family(cases, "family1", 0.3))
+    config = Config(gate="zscore_strata", gate_params={"zscore_strata": {
+        "push": {"alpha": 0.1}, "nightly": {"alpha": 0.2}, "pr": {"alpha": 0.1}}})  # fmt: skip
+    analysis = s.analyse(config)
+    entry = next(e for e in analysis.timeline if e.data.state.key == bad)
+    assert entry.nightly.status == "confirmed" and "family1" in entry.nightly.step_flagged
+    assert entry.push.status == "suspected"

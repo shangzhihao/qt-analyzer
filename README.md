@@ -79,7 +79,13 @@ shows a regression or an improvement, overall or per family. Registered gates:
 | `zscore_split` | `zscore`'s statistic with the regression budget split between the total (50 %), the flaky cases (20 %) and the topics (rest), and a separate, stricter budget for improvements. |
 
 `gate = "<name>"` in `analyzer.toml` (`[analysis]`) selects the gate that makes
-the decisions; `[gates.<name>]` holds its settings.
+the decisions — `zscore_strata` in this repository's configuration;
+`[gates.<name>]` holds its settings, and `[gates.<name>.push]`,
+`[gates.<name>.nightly]` and `[gates.<name>.pr]` override them per stage (a
+1-run PR comparison and a 10-run nightly need different thresholds). The
+values in `analyzer.toml` were tuned with `gates --benchmark
+--equal-false-alarms` on the real suite's pass-rate distribution; a changed
+gate or setting only affects states decided afterwards.
 
 ```sh
 uv run qt-analyzer gates --list
