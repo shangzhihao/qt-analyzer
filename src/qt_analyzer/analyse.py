@@ -139,6 +139,18 @@ class Comparison:
         scopes = [("overall", self.overall)] + sorted(self.families.items())
         return [name for name, t in scopes if t.cases and t.z <= threshold]
 
+    @property
+    def comparable(self) -> bool:
+        """At least one case has the same identity and definition on both sides."""
+        return self.overall.cases > 0
+
+    def not_comparable_reason(self) -> str:
+        c = self.coverage
+        return (
+            f"0 cases compared ({len(c.edited)} edited, {len(c.added)} added, "
+            f"{len(c.removed)} removed)"
+        )
+
     def scopes_below(self, z: float) -> list[str]:
         """Scopes whose z is at or below a fixed threshold."""
         scopes = [("overall", self.overall)] + sorted(self.families.items())
@@ -254,7 +266,7 @@ def load(results: ResultStore) -> tuple[list[StateData], list[PrRun]]:
 
 @dataclass
 class PushResult:
-    status: str  # "suspected" | "ok" | "no-baseline"
+    status: str  # "suspected" | "ok" | "no-baseline" | "not-comparable"
     baseline_states: list[str]
     suspect_range: list[str]
     flagged: list[str]
@@ -264,7 +276,7 @@ class PushResult:
 
 @dataclass
 class NightlyResult:
-    status: str  # "confirmed" | "ongoing" | "cleared" | "ok" | "first"
+    status: str  # "confirmed" | "ongoing" | "cleared" | "ok" | "first" | "not-comparable"
     predecessor: str | None
     reference: str | None
     step_flagged: list[str]
@@ -272,6 +284,7 @@ class NightlyResult:
     cases_flagged: list[str]
     step: Comparison | None
     vs_reference: Comparison | None
+    reason: str = ""  # why it was not comparable
 
 
 @dataclass
@@ -293,7 +306,7 @@ class PrResult:
     number: int
     head_sha: str
     run_id: str
-    status: str  # "baseline-pending" | "ok" | "regressed"
+    status: str  # "baseline-pending" | "ok" | "regressed" | "not-comparable"
     baseline: str | None
     flagged: list[str]
     improved: list[str]
@@ -301,6 +314,7 @@ class PrResult:
     comparison: Comparison | None
     run_url: str = ""
     nearest_baseline: bool = False  # the stated baseline was not measured
+    reason: str = ""  # why it was not comparable
 
 
 @dataclass
@@ -379,6 +393,9 @@ def _push(entries: list[TimelineEntry], i: int, config: Config) -> PushResult:
     for j in measured:
         merge(base, entries[j].data.all_counts().items())
     comparison = compare(entries[i].data.counts["main"], base)
+    if not comparison.comparable:
+        return PushResult("not-comparable", [entries[j].data.state.key for j in measured],
+                          suspect_range, [], [], comparison)  # fmt: skip
     flagged, improved = judge(comparison, "push", config)
     return PushResult(
         "suspected" if flagged else "ok",
@@ -449,6 +466,7 @@ def _nightly(
             record["cases_flagged"],
             step,
             vs_ref,
+            record.get("reason", ""),
         )
         reference = by_key.get(record["reference"], data)
         previous, previous_index = data, i
@@ -469,12 +487,22 @@ def _decide(
 ) -> dict[str, Any]:
     data = entries[i].data
     key = data.state.key
-    step_flagged = judge(step, "nightly", config)[0] if step else []
-    cases_flagged = _case_flags(step, config.nightly_case_fdr) if step else []
-    ref_flagged = judge(vs_ref, "nightly", config)[0] if vs_ref else []
+    step_ok = step is not None and step.comparable
+    step_flagged = judge(step, "nightly", config)[0] if step_ok else []
+    cases_flagged = _case_flags(step, config.nightly_case_fdr) if step_ok else []
+    ref_ok = vs_ref is not None and vs_ref.comparable
+    ref_flagged = judge(vs_ref, "nightly", config)[0] if ref_ok else []
     effects: list[dict[str, Any]] = []
+    reason = ""
     if reference is None or step is None or vs_ref is None:
         verdict, reference_after = "first", data
+    elif not ref_ok:
+        # The reference has other test definitions (e.g. the suite was edited):
+        # nothing can be checked. Restart the reference here; alerts about the
+        # old definitions can no longer be checked and are closed.
+        reason = vs_ref.not_comparable_reason()
+        effects += [{"action": "closed", "id": a, "state": key} for a in open_ids]
+        verdict, reference_after = "not-comparable", data
     elif step_flagged or (ref_flagged and not open_ids):
         # a new drop (a step, or slow drift while no alert is open)
         new_id = alert_id(key, log.alert_ids() | set(alerts))
@@ -499,6 +527,7 @@ def _decide(
         reference_flagged=ref_flagged,
         cases_flagged=cases_flagged,
         effects=effects,
+        reason=reason,
         gate=config.gate,
         nightly_z=config.nightly_z,
         config=config_hash(config),
@@ -506,7 +535,9 @@ def _decide(
     for e in effects:
         log.append(f"alert.{e['action']}", alert=e["id"], state=key)
     if reference is None or reference_after is not reference:
-        log.append("reference.moved", state=reference_after.state.key, by=key)
+        moved_because = "definitions changed" if verdict == "not-comparable" else verdict
+        log.append("reference.moved", state=reference_after.state.key, by=key,
+                   reason=moved_because)  # fmt: skip
     return record
 
 
@@ -566,9 +597,16 @@ def _prs(
             merge(base, entries[j].data.all_counts().items())
         comparison = compare(run.counts, base)
         reported = reports.get(m.run_id)
+        reason = "" if comparison.comparable else comparison.not_comparable_reason()
         if reported is not None:  # decided once; later data cannot flip it
             flagged, improved = reported["flagged"], reported["improved"]
             suspected = reported["suspected_cases"]
+        elif reason:
+            flagged, improved, suspected = [], [], []
+            if not nearest:
+                log.append("pr.reported", run_id=m.run_id, repo=repo, number=number,
+                           head_sha=pr.head_sha, baseline=base_key, status="not-comparable",
+                           flagged=[], improved=[], suspected_cases=[], reason=reason)  # fmt: skip
         else:
             flagged, improved = judge(comparison, "pr", config)
             suspected = sorted(
@@ -587,7 +625,7 @@ def _prs(
                 number,
                 pr.head_sha,
                 m.run_id,
-                "regressed" if flagged else "ok",
+                "not-comparable" if reason else "regressed" if flagged else "ok",
                 entries[i].data.state.key,
                 flagged,
                 improved,
@@ -595,6 +633,7 @@ def _prs(
                 comparison,
                 m.producer.get("run_url", ""),
                 nearest,
+                reason,
             )
         )
     return results
@@ -638,6 +677,11 @@ def save(results: ResultStore, analysis: Analysis) -> None:
         if e.push:
             row["push"] = {
                 "status": e.push.status,
+                "reason": (
+                    e.push.comparison.not_comparable_reason()
+                    if e.push.status == "not-comparable" and e.push.comparison
+                    else ""
+                ),
                 "flagged": e.push.flagged,
                 "improved": e.push.improved,
                 "suspect_range": e.push.suspect_range,
@@ -646,6 +690,7 @@ def save(results: ResultStore, analysis: Analysis) -> None:
         if e.nightly:
             row["nightly"] = {
                 "status": e.nightly.status,
+                "reason": e.nightly.reason,
                 "predecessor": e.nightly.predecessor,
                 "reference": e.nightly.reference,
                 "step_flagged": e.nightly.step_flagged,

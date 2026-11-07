@@ -44,6 +44,8 @@ def print_status(analysis: Analysis, out=sys.stdout) -> None:
         push = e.push.status if e.push else "-"
         if e.push and e.push.flagged:
             push += f" ({', '.join(e.push.flagged)})"
+        if e.push and e.push.status == "not-comparable":
+            push += " (tests changed)"
         nightly = e.nightly.status if e.nightly else "-"
         if e.nightly and (e.nightly.step_flagged or e.nightly.reference_flagged):
             scopes = sorted(set(e.nightly.step_flagged) | set(e.nightly.reference_flagged))

@@ -27,7 +27,12 @@ def _row(name: str, t: ScopeTest) -> str:
 
 def pr_comment(pr: PrResult) -> str:
     lines = [MARKER, "### Answer quality", ""]
-    if pr.status == "baseline-pending":
+    if pr.status == "not-comparable":
+        lines += [
+            f"⚪ **Not comparable.** {pr.reason[:1].upper() + pr.reason[1:]}: the tests "
+            "changed, so this PR's quality could not be checked against `main`.",
+        ]
+    elif pr.status == "baseline-pending":
         lines += [
             "⏳ **Baseline pending.** The `main` state this PR is based on has not been "
             "measured yet; this comment is updated once it is.",
