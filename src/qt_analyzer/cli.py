@@ -13,6 +13,7 @@ from qt_analyzer.analyse import Analysis, Config, analyse, pass_rate, save
 from qt_analyzer.fetch import DEFAULT_REPO, fetch_results
 from qt_analyzer.gates import available_gates
 from qt_analyzer.ingest import ingest_pending
+from qt_analyzer.locators import format_location, location_from_json
 from qt_analyzer.report import github_request, sync_pr_comments
 from qt_analyzer.simulate import (
     SimCase,
@@ -59,7 +60,10 @@ def print_status(analysis: Analysis, out=sys.stdout) -> None:
     open_alerts = [a for a in analysis.alerts if a.open]
     print(f"\nreference: {_short(analysis.reference)}   open alerts: {len(open_alerts)}", file=out)
     for a in open_alerts:
-        print(f"  {_short(a.state)}: {', '.join(a.scopes) or '-'}  cases: {len(a.cases)}", file=out)
+        print(f"  {_short(a.state)}: {', '.join(a.scopes) or '-'}", file=out)
+        if a.where:
+            for line in format_location(location_from_json(a.where)):
+                print(f"    {line}", file=out)
     for p in analysis.prs:
         extra = f" ({', '.join(p.flagged)})" if p.flagged else ""
         print(
@@ -110,6 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     what.add_argument("--list", action="store_true", help="list registered gates")
     what.add_argument("--example", choices=[*gate_compare.EXAMPLES, "all"])
     what.add_argument("--benchmark", action="store_true", help="all scenarios, random trials")
+    what.add_argument(
+        "--locate", action="store_true", help="benchmark the configured locator and gate"
+    )
     p_gates.add_argument("--gates", help="comma-separated gate names (default: all)")
     p_gates.add_argument("--trials", type=int, default=300)
     p_gates.add_argument("--runs", type=int, default=1, help="new runs per case")
@@ -177,6 +184,23 @@ def main(argv: list[str] | None = None) -> int:
         elif args.population_json:
             rows = json.loads(args.population_json.read_text())
             population = [SimCase(f"case{i}", r["family"], r["p"]) for i, r in enumerate(rows)]
+        if args.locate:
+            from qt_analyzer.analyse import stage_params
+            from qt_analyzer.gates import make_gate
+            from qt_analyzer.locators import make_locator
+
+            stage = "nightly" if args.runs > 1 else "pr"
+            gate = make_gate(config.gate, stage_params(config, stage))
+            locator = make_locator(config.locator, config.locator_params.get(config.locator))
+            table = gate_compare.locator_benchmark(gate, locator, population=population,
+                                                   trials=args.trials,
+                                                   baseline_runs=args.baseline_runs,
+                                                   runs=args.runs, seed=args.seed)  # fmt: skip
+            print(f"gate {config.gate} ({stage} settings), locator {config.locator}; "
+                  f"{args.trials} trials, baseline {args.baseline_runs} runs, "
+                  f"new {args.runs}")  # fmt: skip
+            print(gate_compare.format_locator_benchmark(table))
+            return 0
         if args.equal_false_alarms is not None:
             gates, notes = gate_compare.equalise_false_alarms(
                 gates, args.equal_false_alarms, population=population,
