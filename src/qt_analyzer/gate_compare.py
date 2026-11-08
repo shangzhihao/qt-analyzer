@@ -21,7 +21,7 @@ import random
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from qt_analyzer.analyse import Agg, Comparison, compare
+from qt_analyzer.analyse import STAGES, Agg, Comparison, compare
 from qt_analyzer.gates import Gate, Verdict, available_gates, make_gate
 from qt_analyzer.simulate import SimCase, synthetic_population
 
@@ -247,10 +247,9 @@ def equalise_false_alarms(
 
 def build_gates(names: Sequence[str] | None, params: dict[str, dict]) -> dict[str, Gate]:
     names = list(names) if names else available_gates()
-    stages = ("push", "nightly", "pr")  # per-stage sub-tables are for the analysis
 
-    def base(name: str) -> dict:
-        return {k: v for k, v in params.get(name, {}).items() if k not in stages}
+    def base(name: str) -> dict:  # per-stage sub-tables are for the analysis
+        return {k: v for k, v in params.get(name, {}).items() if k not in STAGES}
 
     return {name: make_gate(name, base(name)) for name in names}
 

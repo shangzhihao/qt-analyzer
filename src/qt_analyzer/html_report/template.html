@@ -273,6 +273,10 @@ function tile(labelText, value, note, hero = false) {
     tile("Runs", String(o.runs.complete), `${o.runs.incomplete} incomplete · ${o.runs.rejected} rejected`),
     tile("Last run", o.last_run_at ? o.last_run_at.slice(0, 16).replace("T", " ") : "–", null),
   );
+  const phi = Object.entries(o.dispersion || {});
+  if (phi.length) $("tiles").append(tile("Night-to-night variation",
+    `×${Math.max(...phi.map(([, v]) => v)).toFixed(1)}`,
+    phi.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ") + " (variance vs. independent runs; nightly gate widened by √)"));
 })();
 
 // ---------- timeline ----------

@@ -6,10 +6,11 @@ needs no state of its own beyond the ResultStore.
 
 from __future__ import annotations
 
+import math
 import tomllib
 from collections import defaultdict
 from collections.abc import Iterable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -209,12 +210,15 @@ def compare(new: Counts, base: Counts) -> Comparison:
 
 def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str], list[str]]:
     """(regressed, improved) scopes by the configured gate, for a stage
-    ("push", "nightly" or "pr")."""
+    ("push", "nightly", "pr", or "reference": the loose check whether the
+    reference may move to a state)."""
     if config.gate == "zscore":
         if stage == "push":
             alpha = config.push_alpha_per_state
         elif stage == "nightly":
             return comparison.scopes_below(config.nightly_z), []
+        elif stage == "reference":
+            alpha = config.reference_move_alpha_per_state
         else:
             alpha = config.pr_alpha
         return comparison.flagged_scopes(alpha), comparison.improved_scopes(alpha)
@@ -234,7 +238,7 @@ def location_json(location: Location | None) -> dict[str, Any] | None:
     return asdict(location) if location else None
 
 
-STAGES = ("push", "nightly", "pr")
+STAGES = ("push", "nightly", "pr", "reference")
 
 
 def stage_params(config: Config, stage: str) -> dict[str, Any]:
@@ -361,6 +365,69 @@ class Analysis:
     reference: str | None
     prs: list[PrResult]
     log: DecisionLog = field(default_factory=DecisionLog)
+    dispersion: dict[str, dict[str, float]] = field(default_factory=dict)  # stage -> kind -> phi
+
+
+# Median of a chi-square with one degree of freedom: median(z^2) under the binomial model.
+_CHI2_MEDIAN = 0.4549
+
+
+def _gate_takes(config: Config, param: str) -> bool:
+    from qt_analyzer.gates import _REGISTRY
+
+    cls = _REGISTRY.get(config.gate)
+    return cls is not None and param in getattr(cls, "__dataclass_fields__", {})
+
+
+def estimate_dispersion(comparisons: list[Comparison], shares) -> dict[str, float]:
+    """How much more real comparisons vary than the binomial model says, per kind of
+    scope: phi = median(z^2) / median of chi-square(1), at least 1. The median keeps
+    real changes (and outages) from inflating it; scopes that never fail tell
+    nothing about the variance and are left out. Needs 5 comparisons per kind."""
+    from qt_analyzer.candidate_gates import strata_scopes
+
+    zs: dict[str, list[float]] = defaultdict(list)
+    for comparison in comparisons:
+        if comparison.comparable:
+            for _, kind, z, _ in strata_scopes(comparison, shares):
+                if (
+                    math.isfinite(z) and z != 0
+                ):  # z = 0: nothing failed on either side, no information
+                    zs[kind].append(z * z)
+    phi = {}
+    for kind, values in zs.items():
+        if len(values) >= 5:
+            values.sort()
+            median = values[len(values) // 2]
+            phi[kind] = round(max(1.0, median / _CHI2_MEDIAN), 3)
+    return phi
+
+
+def _with_dispersion(entries: list[TimelineEntry], config: Config) -> tuple[Config, dict]:
+    """Estimate phi from the history's own comparisons (nightly step comparisons for
+    the nightly and the reference check, 1-run comparisons for push and PR) and pass
+    it to the gate."""
+    if not _gate_takes(config, "dispersion"):
+        return config, {}
+    params = config.gate_params.get(config.gate, {})
+    shares = tuple(params.get("shares", (0.35, 0.25, 0.15)))
+    nightly_states = [e.data for e in entries if e.data.runs["nightly"]]
+    nightly = [compare(b.counts["nightly"], a.counts["nightly"])
+               for a, b in zip(nightly_states, nightly_states[1:], strict=False)]  # fmt: skip
+    measured = [e.data for e in entries if e.data.measured]
+    push = [compare(b.counts["main"], a.all_counts())
+            for a, b in zip(measured, measured[1:], strict=False) if b.runs["main"]]  # fmt: skip
+    phi = {
+        "nightly": estimate_dispersion(nightly, shares),
+        "push": estimate_dispersion(push, shares),
+    }
+    stage_phi = {"nightly": phi["nightly"], "reference": phi["nightly"], "push": phi["push"],
+                 "pr": phi["push"]}  # fmt: skip
+    new_params = dict(params)
+    for stage, value in stage_phi.items():
+        new_params[stage] = {**params.get(stage, {}), "dispersion": value}
+    gate_params = {**config.gate_params, config.gate: new_params}
+    return replace(config, gate_params=gate_params), phi
 
 
 def analyse(results: ResultStore, config: Config) -> Analysis:
@@ -381,6 +448,7 @@ def analyse_data(
     """
     log = log if log is not None else DecisionLog()
     entries = [TimelineEntry(d) for d in timeline_data]
+    config, dispersion = _with_dispersion(entries, config)
     alerts, reference = _nightly(entries, config, log)
     for i, entry in enumerate(entries):
         if entry.data.runs["main"]:
@@ -389,7 +457,7 @@ def analyse_data(
             if entry.nightly.status == "ok":
                 entry.nightly.status = "cleared"
     prs = _prs(entries, pr_runs, config, log)
-    return Analysis(entries, alerts, reference, prs, log)
+    return Analysis(entries, alerts, reference, prs, log, dispersion)
 
 
 def _starts_regression(entry: TimelineEntry) -> bool:
@@ -550,7 +618,7 @@ def _decide(
         verdict, reference_after = "ongoing", reference
     else:
         effects += [{"action": "closed", "id": a, "state": key} for a in open_ids]
-        moves = not vs_ref.flagged_scopes(config.reference_move_alpha_per_state)
+        moves = not judge(vs_ref, "reference", config)[0]
         verdict, reference_after = "ok", data if moves else reference
     record = log.append(
         "state.decided",
@@ -563,6 +631,7 @@ def _decide(
         effects=effects,
         reason=reason,
         gate=config.gate,
+        dispersion=stage_params(config, "nightly").get("dispersion"),
         nightly_z=config.nightly_z,
         config=config_hash(config),
     )
