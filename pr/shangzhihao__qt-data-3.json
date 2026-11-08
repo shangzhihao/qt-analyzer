@@ -1,0 +1,239 @@
+{
+  "baseline": "sha256:f9590a07e223ed3aa04cef2a003ddd2f0f01d0492ba154ef4d608a7a660d3d49",
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.8328125,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 0.9859375,
+        "rate_s": 1.0,
+        "z": 0.0
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.83125,
+        "rate_s": 0.9,
+        "z": 0.8543485672098341
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.9046875,
+        "rate_s": 0.9,
+        "z": -0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.865625,
+        "rate_s": 0.75,
+        "z": -1.7246348642013818
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.8890625,
+        "rate_s": 0.9,
+        "z": 0.0
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.890625,
+        "rate_s": 0.8,
+        "z": -1.1252906165285324
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.965625,
+        "rate_s": 1.0,
+        "z": 0.18336926225972996
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.71875,
+        "rate_s": 0.75,
+        "z": 0.12304128029358895
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 0.9109375,
+        "rate_s": 0.4,
+        "z": -7.542981090346963
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.87953125,
+      "rate_s": 0.825,
+      "z": -3.065115706312607
+    }
+  },
+  "flagged": [
+    "overall",
+    "reliable cases",
+    "taxes"
+  ],
+  "head_sha": "9fee0288a5fc5ca6e237ac2b25a6dec62ca47eff",
+  "improved": [],
+  "location": {
+    "cases": [
+      {
+        "case_key": "067c4a72828ad34e",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-16]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "13c7b67f9ee905b9",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-20]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "3e767729d7be9ca1",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-04]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "44c57c9508dbc709",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-13]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "5ad49e8b919cb91e",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-19]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "831839b13a41874a",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-05]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "e1b6411345be5d72",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-01]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "eb2787de7e25aef8",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-09]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.030303030303030304,
+        "passed_b": 32,
+        "passed_s": 0,
+        "q": 0.07575757575757576
+      },
+      {
+        "case_key": "1e4bf17204166862",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-11]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.06060606060606061,
+        "passed_b": 31,
+        "passed_s": 0,
+        "q": 0.13468013468013468
+      },
+      {
+        "case_key": "52f10d0b129a6f62",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-18]",
+        "judged_b": 32,
+        "judged_s": 1,
+        "p": 0.21212121212121213,
+        "passed_b": 26,
+        "passed_s": 0,
+        "q": 0.4242424242424242
+      }
+    ],
+    "direction": "regression",
+    "scopes": [
+      {
+        "rate_b": 0.9109375,
+        "rate_s": 0.4,
+        "scope": "taxes",
+        "z": -7.542981090346963
+      },
+      {
+        "rate_b": 0.9966887417218543,
+        "rate_s": 0.9337748344370861,
+        "scope": "reliable cases",
+        "z": -4.015937529860855
+      },
+      {
+        "rate_b": 0.865625,
+        "rate_s": 0.75,
+        "scope": "fees",
+        "z": -1.7246348642013818
+      }
+    ]
+  },
+  "nearest_baseline": true,
+  "number": 3,
+  "reason": "",
+  "repo": "shangzhihao/qt-data",
+  "run_id": "graph-42479343685",
+  "run_url": "https://github.com/shangzhihao/qt-graph/actions/runs/42479343685",
+  "status": "regressed",
+  "suspected_cases": [
+    "067c4a72828ad34e",
+    "13c7b67f9ee905b9",
+    "3e767729d7be9ca1",
+    "40514481be323bda",
+    "44c57c9508dbc709",
+    "5ad49e8b919cb91e",
+    "831839b13a41874a",
+    "a9d5896f06d49434",
+    "e1b6411345be5d72",
+    "eb2787de7e25aef8"
+  ]
+}
