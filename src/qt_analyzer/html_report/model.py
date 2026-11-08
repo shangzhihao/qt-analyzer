@@ -322,6 +322,7 @@ def build_model(
             "reference": _short(analysis.reference),
             "states": len(states),
             "open_alerts": len(open_alerts),
+            "dispersion": analysis.dispersion.get("nightly", {}),
             "alerts": len(analysis.alerts),
             "prs": len(analysis.prs),
             "prs_regressed": sum(p.status == "regressed" for p in analysis.prs),

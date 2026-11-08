@@ -8,7 +8,9 @@
 - `zscore_split_hc`: `zscore_split` with part of its budget moved to a higher
   criticism test, to cover sparse changes as well.
 - `zscore_strata`: `zscore_split` plus a scope of the reliable cases, taking over
-  the strength of testimate's p^3 weighting without its blind spot.
+  the strength of testimate's p^3 weighting without its blind spot. With
+  `dispersion` (φ per kind of scope, estimated by the analysis) each z is
+  divided by √φ, for runs that vary more than independent runs.
 """
 
 from __future__ import annotations
@@ -128,7 +130,37 @@ class ZScoreSplitHCGate:
 
 
 def _reliable(c: CaseResult) -> bool:
-    return c.passed_b / c.judged_b >= 0.95
+    from qt_analyzer.gates import pooled_rate
+
+    return pooled_rate(c) >= 0.95
+
+
+DISPERSION_KINDS = ("overall", "reliable cases", "flaky cases", "topics")
+
+
+def strata_scopes(
+    comparison: Comparison, shares: tuple[float, float, float]
+) -> list[tuple[str, str, float, float]]:
+    """(scope, kind, z, share of the budget) for zscore_strata's scopes."""
+    from qt_analyzer.gates import _flaky
+    from qt_analyzer.stats import Pair, scope_test
+
+    total, reliable_share, flaky_share = shares
+    topics = sorted((n, t) for n, t in comparison.families.items() if t.cases)
+    topic_share = (1 - total - reliable_share - flaky_share) / max(len(topics), 1)
+
+    def pairs(keep):
+        return [Pair(c.passed_s, c.judged_s, c.passed_b, c.judged_b)
+                for c in _cases(comparison) if keep(c)]  # fmt: skip
+
+    scopes = [("overall", "overall", comparison.overall.z, total)]
+    for name, keep, share in (("reliable cases", _reliable, reliable_share),
+                              ("flaky cases", _flaky, flaky_share)):  # fmt: skip
+        selected = pairs(keep)
+        if selected:
+            scopes.append((name, name, scope_test(selected).z, share))
+    scopes += [(name, "topics", t.z, topic_share) for name, t in topics]
+    return scopes
 
 
 @register_gate("zscore_strata")
@@ -140,38 +172,30 @@ class ZScoreStrataGate:
     topics the rest; improvements get `improvement_alpha` split the same way.
     The reliable scope takes over the strength of testimate's p^3 weighting
     (reliable cases breaking) without its blindness to flaky cases.
+
+    `dispersion` ({kind: phi}, kinds as in DISPERSION_KINDS) inflates the
+    variance for night-to-night variation that the binomial model ignores:
+    z is divided by sqrt(phi). The analysis estimates it from the history.
     """
 
     alpha: float = 0.05
     improvement_alpha: float = 0.01
     shares: tuple[float, float, float] = (0.35, 0.25, 0.15)  # total, reliable, flaky
+    dispersion: dict[str, float] | None = None
 
     def tuned(self, level: float) -> ZScoreStrataGate:
-        return ZScoreStrataGate(level, level * self.improvement_alpha / self.alpha, self.shares)
+        return ZScoreStrataGate(level, level * self.improvement_alpha / self.alpha, self.shares,
+                                self.dispersion)  # fmt: skip
 
     def judge(self, comparison: Comparison) -> Verdict:
-        from qt_analyzer.gates import _flaky
-        from qt_analyzer.stats import Pair, scope_test, z_threshold
+        from qt_analyzer.stats import z_threshold
 
         verdict = Verdict()
         if not comparison.overall.cases:
             return verdict
-        total, reliable_share, flaky_share = self.shares
-        topics = sorted((n, t) for n, t in comparison.families.items() if t.cases)
-        topic_share = (1 - total - reliable_share - flaky_share) / max(len(topics), 1)
-
-        def pairs(keep):
-            return [Pair(c.passed_s, c.judged_s, c.passed_b, c.judged_b)
-                    for c in _cases(comparison) if keep(c)]  # fmt: skip
-
-        scopes = [("overall", comparison.overall.z, total)]
-        for name, keep, share in (("reliable cases", _reliable, reliable_share),
-                                  ("flaky cases", _flaky, flaky_share)):  # fmt: skip
-            selected = pairs(keep)
-            if selected:
-                scopes.append((name, scope_test(selected).z, share))
-        scopes += [(name, t.z, topic_share) for name, t in topics]
-        for scope, z, share in scopes:
+        phi = self.dispersion or {}
+        for scope, kind, raw_z, share in strata_scopes(comparison, tuple(self.shares)):
+            z = raw_z / math.sqrt(max(phi.get(kind, 1.0), 1.0))
             drop_cut = z_threshold(self.alpha * share)
             gain_cut = -z_threshold(self.improvement_alpha * share)
             verdict.detail[scope] = f"z = {z:+.2f} (drop at {drop_cut:.2f})"

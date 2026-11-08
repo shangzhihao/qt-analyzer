@@ -1,3 +1,4 @@
+import dataclasses
 import sys
 import textwrap
 
@@ -202,3 +203,26 @@ def test_analysis_with_zscore_strata_and_stage_settings(tmp_path):
     entry = next(e for e in analysis.timeline if e.data.state.key == bad)
     assert entry.nightly.status == "confirmed" and "family1" in entry.nightly.step_flagged
     assert entry.push.status == "suspected"
+
+
+def test_night_to_night_variation_widens_the_strata_gate():
+    _, make = EXAMPLES["regression"]
+    comparison = make()
+    assert "topic0" in make_gate("zscore_strata").judge(comparison).regressed
+    wide = make_gate("zscore_strata", {"dispersion": {"topics": 100.0}})
+    assert "topic0" not in wide.judge(comparison).regressed
+
+
+def test_dispersion_is_estimated_from_the_history(tmp_path):
+    cases = make_cases(4, 25, 0.9)
+    s = Scenario(tmp_path, cases)
+    for i in range(1, 8):
+        s.commit("graph", f"g{i}")
+    calm = s.analyse(Config(gate="zscore_strata")).dispersion["nightly"]
+    assert calm and all(phi < 2.5 for phi in calm.values())
+
+    s = Scenario(tmp_path / "noisy", cases)
+    for i, p in enumerate([0.95, 0.75, 0.9, 0.7, 0.95, 0.75, 0.9, 0.7], 1):
+        s.commit("graph", f"g{i}", [dataclasses.replace(c, p=p) for c in cases])
+    noisy = s.analyse(Config(gate="zscore_strata")).dispersion["nightly"]
+    assert noisy["overall"] > 4 and noisy["overall"] > calm["overall"]

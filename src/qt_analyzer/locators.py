@@ -18,6 +18,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol
 
+from qt_analyzer.gates import pooled_rate
 from qt_analyzer.stats import Pair, benjamini_hochberg, fisher_drop, scope_test
 
 if TYPE_CHECKING:
@@ -86,7 +87,7 @@ def _judged(comparison: Comparison) -> list[CaseResult]:
 
 
 def strata_of(case: CaseResult) -> str:
-    rate = case.passed_b / case.judged_b
+    rate = pooled_rate(case)
     if rate >= 0.95:
         return "reliable cases"
     if rate > 0.05:

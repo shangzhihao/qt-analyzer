@@ -59,3 +59,9 @@ significance_level = 0.05
 [locators.ranked]
 top_scopes = 3
 top_cases = 10
+
+# May the reference move to a state? Only when no scope hints at a drop at this
+# loose level (the zscore gate uses reference_move_alpha_per_state instead).
+[gates.zscore_strata.reference]
+alpha = 0.2
+improvement_alpha = 0.2

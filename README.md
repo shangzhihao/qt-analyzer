@@ -110,6 +110,21 @@ the decisions — `zscore_strata` in this repository's configuration;
 values in `analyzer.toml` were tuned with `gates --benchmark
 --equal-false-alarms` on the real suite's pass-rate distribution; a changed
 gate or setting only affects states decided afterwards.
+`[gates.<name>.reference]` is the loose check that decides whether the
+reference may move to a nightly state (no scope may hint at a drop at that
+level).
+
+Real nightly runs vary together from night to night (shared infrastructure,
+model behaviour), more than the binomial variance of independent runs allows.
+For a gate with a `dispersion` setting (`zscore_strata`), the analysis
+estimates this from the history itself on every pass: for each kind of scope
+(overall, reliable cases, flaky cases, topics), φ = median(z²) / 0.4549 over
+the step comparisons between consecutive nightly states (push and PR stages:
+over the 1-run comparisons), at least 1, and divides each z by √φ. The median
+keeps real changes and outages from inflating φ. The values are recorded with
+each nightly decision and shown in the report. Reliable and flaky cases are
+chosen by their pass rate over both sides of a comparison, not by the
+baseline alone, which would bias the test.
 
 ```sh
 uv run qt-analyzer gates --list

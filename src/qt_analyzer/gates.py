@@ -364,9 +364,15 @@ class BayesGate:
 # zscore_split: the zscore statistic with the false-alarm budget split on purpose
 
 
+def pooled_rate(case: CaseResult) -> float:
+    """The case's pass rate over both sides. Strata are chosen by it, not by the
+    baseline alone: choosing by the side being compared biases the test (cases that
+    happened to pass every baseline run look worse on the next run by chance)."""
+    return (case.passed_s + case.passed_b) / (case.judged_s + case.judged_b)
+
+
 def _flaky(case: CaseResult) -> bool:
-    rate = case.passed_b / case.judged_b
-    return 0.05 < rate < 0.95
+    return 0.05 < pooled_rate(case) < 0.95
 
 
 @register_gate("zscore_split")
