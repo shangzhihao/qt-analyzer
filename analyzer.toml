@@ -14,13 +14,39 @@ reference_move_alpha_per_state = 0.2
 pr_alpha = 0.05                  # PR overall/family drop
 pr_case_p = 0.05                 # PR single case marked "suspected"
 
-# Gate algorithm that makes the decisions: zscore (default; uses the thresholds
-# above), testimate_threshold, poisson_binomial, bayes, or one of your own.
-gate = "zscore"
+# Gate algorithm that makes the decisions: zscore_strata (chosen: best worst
+# case in simulation and on real testimate history), zscore (uses the
+# thresholds above), testimate_threshold, poisson_binomial, bayes, or your own.
+gate = "zscore_strata"
 # Modules that register more gates with @register_gate (see gates.py).
 gate_modules = []
 
-# Settings per gate, passed as keyword arguments.
+# Settings per gate, passed as keyword arguments; [gates.<name>.<stage>]
+# overrides them for "push", "nightly" or "pr".
+#
+# zscore_strata, tuned on the real vws-graph pass-rate distribution
+# (`qt-analyzer gates --benchmark --equal-false-alarms ...`, 2,000 draws):
+# - nightly (10 vs 10 runs): about 3-4 % false regressions and false
+#   improvements per comparison, i.e. about 4 false issues per month at
+#   60 nightly states with a step and a drift test each.
+# - push and PR (1 run vs a pooled baseline): about 5 % false "suspected"
+#   regressions and 4 % false improvements; these never open issues.
+[gates.zscore_strata]
+alpha = 0.05
+improvement_alpha = 0.01
+
+[gates.zscore_strata.push]
+alpha = 0.25
+improvement_alpha = 0.2
+
+[gates.zscore_strata.nightly]
+alpha = 0.013
+improvement_alpha = 0.0026
+
+[gates.zscore_strata.pr]
+alpha = 0.25
+improvement_alpha = 0.2
+
 [gates.bayes]
 delta = 0.03
 probability = 0.99

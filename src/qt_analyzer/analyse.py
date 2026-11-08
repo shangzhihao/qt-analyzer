@@ -213,8 +213,19 @@ def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str]
         return comparison.flagged_scopes(alpha), comparison.improved_scopes(alpha)
     from qt_analyzer.gates import make_gate
 
-    verdict = make_gate(config.gate, config.gate_params.get(config.gate)).judge(comparison)
+    verdict = make_gate(config.gate, stage_params(config, stage)).judge(comparison)
     return verdict.regressed, verdict.improved
+
+
+STAGES = ("push", "nightly", "pr")
+
+
+def stage_params(config: Config, stage: str) -> dict[str, Any]:
+    """The gate's settings for a stage: `[gates.<name>]`, overridden by
+    `[gates.<name>.<stage>]`."""
+    params = config.gate_params.get(config.gate, {})
+    base = {k: v for k, v in params.items() if k not in STAGES}
+    return base | params.get(stage, {})
 
 
 # ---------------------------------------------------------------------------
