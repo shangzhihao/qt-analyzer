@@ -65,6 +65,30 @@ test_answer[taxes-03]
 - The baseline pools the newest `--states` measured main states.
 - Exit code 1 when any case regressed.
 
+## HTML report
+
+One self-contained HTML file (no server, works offline, light and dark mode):
+
+```sh
+uv run qt-analyzer report --fetch --out report.html                    # published results
+uv run qt-analyzer report --results path/to/qt-results --out report.html
+uv run qt-analyzer report --fetch --logs-github shangzhihao/qt-graph   # + failure messages
+```
+
+Sections: overview tiles; pass rate over main states with each verdict; topics ×
+states heatmap (pass rate or change, flagged cells marked); alerts with where they
+are and their decision history; pull requests; what every registered gate would
+have said on each comparison (including testimate's two gates); a searchable
+test-case explorer with each case's history, definition changes and failure
+messages; runs; the decision log. Every chart has a table view.
+
+Failure messages need raw logs: `--logs DIR` (a runs folder) or `--logs-github
+OWNER/REPO` (Actions artifacts while they last, newest `--logs-runs` runs; needs
+`QT_PAT` or `GITHUB_TOKEN`).
+
+All numbers are computed in Python (`html_report/model.py`); the page only draws,
+sorts and searches, so an interactive front end can reuse the same model later.
+
 ## Gate algorithms
 
 A gate decides whether a comparison (new state vs. baseline, paired by case)

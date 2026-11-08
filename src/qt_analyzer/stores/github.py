@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -42,8 +43,15 @@ class GitHubArtifactsStore:
         return urllib.request.Request(url, headers=headers)
 
     def get_json(self, url: str) -> Any:
-        with urllib.request.urlopen(self._request(url), timeout=60) as response:
-            return json.load(response)
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(self._request(url), timeout=60) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                if error.code < 500 or attempt == 2:  # retry only GitHub's server errors
+                    raise
+                time.sleep(2 * (attempt + 1))
+        raise AssertionError("unreachable")
 
     def get_bytes(self, url: str) -> bytes:
         """Download through GitHub's redirect without sending the token to blob storage."""

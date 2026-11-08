@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Answer quality report</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6; --series-2: #eb6834;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --good-text: #006300; --neutral: #f0efec;
+  --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
+  --div-neg-3: #b02a2a; --div-neg-2: #e34948; --div-neg-1: #f2a3a2;
+  --div-pos-1: #9ec5f4; --div-pos-2: #3987e5; --div-pos-3: #184f95;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #d95926; --good-text: #0ca30c; --neutral: #383835;
+    --seq-1: #104281; --seq-2: #184f95; --seq-3: #1c5cab; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #86b6ef; --seq-7: #cde2fb;
+    --div-neg-3: #f2a3a2; --div-neg-2: #e66767; --div-neg-1: #8a2f2f;
+    --div-pos-1: #184f95; --div-pos-2: #3987e5; --div-pos-3: #9ec5f4;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --series-1: #3987e5; --series-2: #d95926; --good-text: #0ca30c; --neutral: #383835;
+  --seq-1: #104281; --seq-2: #184f95; --seq-3: #1c5cab; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #86b6ef; --seq-7: #cde2fb;
+  --div-neg-3: #f2a3a2; --div-neg-2: #e66767; --div-neg-1: #8a2f2f;
+  --div-pos-1: #184f95; --div-pos-2: #3987e5; --div-pos-3: #9ec5f4;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 24px 32px 8px; }
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 14px; margin: 16px 0 6px; font-weight: 600; }
+.meta { color: var(--ink-2); font-size: 13px; }
+nav { position: sticky; top: 0; z-index: 5; background: var(--page); padding: 8px 32px;
+  border-bottom: 1px solid var(--grid); display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+nav a { color: var(--ink-2); text-decoration: none; font-size: 13px; }
+nav a:hover { color: var(--ink); }
+nav button { margin-left: auto; }
+main { padding: 16px 32px 48px; max-width: 1400px; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px 24px; margin: 0 0 20px; }
+.sub { color: var(--ink-2); margin: 0 0 14px; font-size: 13px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .value { font-size: 26px; font-weight: 600; margin: 2px 0; }
+.tile .note { color: var(--muted); font-size: 12px; }
+.hero .value { font-size: 48px; line-height: 1.1; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--axis);
+  padding: 6px 8px; position: sticky; top: 0; background: var(--surface); cursor: default; }
+th.sortable { cursor: pointer; }
+td { border-bottom: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { max-height: 520px; overflow: auto; }
+.badge { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.chip { display: inline-block; border: 1px solid var(--border); border-radius: 10px; padding: 0 7px;
+  margin: 1px 3px 1px 0; font-size: 12px; color: var(--ink-2); }
+.muted { color: var(--muted); }
+a { color: var(--series-1); }
+details { margin-top: 10px; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin: 0 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-line { width: 16px; height: 2px; display: inline-block; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
+input[type="search"], select, button { font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 4px 8px; }
+button { cursor: pointer; }
+button[aria-pressed="true"] { background: var(--neutral); }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.tooltip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 360px; z-index: 20; display: none; }
+.tooltip .v { font-weight: 600; }
+.tooltip .row { display: flex; gap: 6px; align-items: center; }
+.cards { display: grid; gap: 14px; }
+.card { border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+.empty { color: var(--muted); font-style: italic; }
+tr.selectable { cursor: pointer; }
+tr.selectable:hover td, tr.selected td { background: var(--neutral); }
+.split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } main, header, nav { padding-left: 16px; padding-right: 16px; } }
+.scale { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.scale .bar { display: flex; height: 10px; width: 160px; border-radius: 2px; overflow: hidden; }
+.scale .bar i { flex: 1; }
+code { font-size: 12px; }
+#gate-table th { white-space: normal; min-width: 90px; }
+.verdict { font-size: 12px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Answer quality report</h1>
+  <div class="meta" id="meta"></div>
+</header>
+<nav>
+  <a href="#overview">Overview</a><a href="#timeline">Timeline</a><a href="#topics">Topics</a>
+  <a href="#alerts">Alerts</a><a href="#prs">Pull requests</a><a href="#gates">Gates</a>
+  <a href="#cases">Test cases</a><a href="#runs">Runs</a><a href="#decisions">Decisions</a>
+  <button id="theme" type="button" aria-label="Toggle light or dark mode">Light / dark</button>
+</nav>
+<main>
+  <section id="overview"><h2>Overview</h2><p class="sub" id="overview-sub"></p><div class="tiles" id="tiles"></div></section>
+  <section id="timeline"><h2>Pass rate over main states</h2>
+    <p class="sub">Each point is a state of <code>main</code> (one version per component), in commit order. The 1-run signal comes from the run on merge; the 10-run nightly confirms. Markers show the verdict.</p>
+    <div class="legend" id="timeline-legend"></div><div class="chart" id="timeline-chart"></div>
+    <details><summary>Table view</summary><div class="scroll" id="timeline-table"></div></details></section>
+  <section id="topics"><h2>Topics × states</h2>
+    <p class="sub">Pass rate of every topic in every state (nightly runs where available). Marked cells were flagged by the gate.</p>
+    <div class="controls"><button type="button" id="mode-rate" aria-pressed="true">Pass rate</button>
+      <button type="button" id="mode-delta" aria-pressed="false">Change vs previous state</button><span class="scale" id="heat-scale"></span></div>
+    <div class="chart" id="heat-chart"></div>
+    <details><summary>Table view</summary><div class="scroll" id="heat-table"></div></details></section>
+  <section id="alerts"><h2>Alerts</h2><p class="sub">Regressions confirmed by the nightly, with where they are and their history in the decision log.</p><div class="cards" id="alert-cards"></div></section>
+  <section id="prs"><h2>Pull requests</h2><p class="sub">Each PR's newest run against <code>main</code>. Reports only, never blocks a merge.</p><div class="scroll" id="pr-table"></div></section>
+  <section id="gates"><h2>What every gate would have said</h2>
+    <p class="sub" id="gates-sub"></p><div class="scroll" id="gate-table"></div></section>
+  <section id="cases"><h2>Test cases</h2>
+    <p class="sub">Search a test case to see its pass rate in every state, where its definition changed, and failure messages when raw logs were included.</p>
+    <div class="controls"><input type="search" id="case-search" placeholder="Search test or topic" aria-label="Search test cases">
+      <select id="case-filter" aria-label="Filter test cases"><option value="">All cases</option><option value="reliable">Reliable (≥ 95 %)</option><option value="flaky">Flaky</option><option value="failing">Failing (≤ 5 %)</option><option value="changed">Definition changed</option><option value="failures">With failure messages</option></select>
+      <span class="muted" id="case-count"></span></div>
+    <div class="split"><div class="scroll" id="case-table"></div><div id="case-detail"><p class="empty">Select a test case.</p></div></div></section>
+  <section id="runs"><h2>Runs</h2><p class="sub" id="runs-sub"></p><div class="scroll" id="run-table"></div></section>
+  <section id="decisions"><h2>Decision log</h2><p class="sub">Every verdict is decided once and appended here; later passes never rewrite it.</p>
+    <details><summary>Show all records</summary><div class="scroll" id="decision-table"></div></details></section>
+</main>
+<div class="tooltip" id="tooltip" role="status"></div>
+<script id="model" type="application/json">/*__MODEL__*/</script>
+<script>
+(() => {
+"use strict";
+const M = JSON.parse(document.getElementById("model").textContent);
+const SVG = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// ---------- small helpers (all text through textContent) ----------
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") node.className = v; else if (k === "text") node.textContent = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v); else node.setAttribute(k, v);
+  }
+  for (const c of children) if (c !== null && c !== undefined) node.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return node;
+}
+function s(tag, attrs = {}) {
+  const node = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) node.setAttribute(k, v);
+  return node;
+}
+const pct = (x, d = 1) => x === null || x === undefined ? "–" : (x * 100).toFixed(d) + " %";
+const pts = (x) => x === null || x === undefined ? "–" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + " pts";
+const zf = (x) => x === null || x === undefined ? "–" : (x >= 0 ? "+" : "") + x.toFixed(2);
+const label = (st) => st.created_by ? `${st.created_by}@${st.sha || st.short}` : st.short;
+
+const STATUS = {
+  confirmed: { color: "--critical", icon: "▼", text: "confirmed regression" },
+  ongoing: { color: "--serious", icon: "▼", text: "still below the reference" },
+  suspected: { color: "--warning", icon: "△", text: "suspected (1 run)" },
+  regressed: { color: "--critical", icon: "▼", text: "regressed" },
+  improved: { color: "--good", icon: "▲", text: "improved" },
+  "not-comparable": { color: "--muted", icon: "○", text: "not comparable" },
+  ok: { color: "--muted", icon: "·", text: "no change" },
+  first: { color: "--muted", icon: "·", text: "first measured" },
+  "no-baseline": { color: "--muted", icon: "·", text: "no baseline yet" },
+  "baseline-pending": { color: "--muted", icon: "…", text: "baseline pending" },
+  cleared: { color: "--muted", icon: "·", text: "cleared by the nightly" },
+  closed: { color: "--good", icon: "✓", text: "closed" },
+};
+function badge(status) {
+  const st = STATUS[status] || { color: "--muted", icon: "·", text: status };
+  return el("span", { class: "badge" }, el("span", { class: "dot", style: `background:var(${st.color})` }),
+    el("span", { text: `${st.icon} ${st.text}` }));
+}
+function stateVerdict(st) {
+  if (st.nightly && ["confirmed", "ongoing", "not-comparable"].includes(st.nightly.status)) return st.nightly.status;
+  if (st.push && st.push.status === "suspected") return "suspected";
+  if (st.push && st.push.improved && st.push.improved.length) return "improved";
+  if (st.push && st.push.status === "not-comparable") return "not-comparable";
+  return st.nightly ? st.nightly.status : st.push ? st.push.status : "ok";
+}
+
+const tip = $("tooltip");
+function showTip(evt, rows) {
+  tip.replaceChildren(...rows);
+  tip.style.display = "block";
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > innerWidth - 8) x = evt.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = evt.clientY - h - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+function table(columns, rows, opts = {}) {
+  const thead = el("thead", {}, el("tr", {}, ...columns.map((c, i) => {
+    const th = el("th", { class: (c.num ? "num " : "") + (opts.sortable ? "sortable" : ""), text: c.title, scope: "col" });
+    if (opts.sortable) th.addEventListener("click", () => sortBy(i));
+    return th;
+  })));
+  const tbody = el("tbody");
+  let order = rows.slice();
+  function fill() {
+    tbody.replaceChildren(...order.map((r) => {
+      const tr = el("tr", opts.onSelect ? { class: "selectable", tabindex: "0" } : {});
+      for (const c of columns) {
+        const v = c.render ? c.render(r) : r[c.key];
+        tr.append(el("td", { class: c.num ? "num" : "" }, v === null || v === undefined ? "–" : v));
+      }
+      if (opts.onSelect) {
+        tr.addEventListener("click", () => { tbody.querySelectorAll(".selected").forEach((n) => n.classList.remove("selected")); tr.classList.add("selected"); opts.onSelect(r); });
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter") tr.click(); });
+      }
+      return tr;
+    }));
+  }
+  let dir = 1, last = -1;
+  function sortBy(i) {
+    const c = columns[i]; if (!c.sort) return;
+    dir = last === i ? -dir : 1; last = i;
+    order.sort((a, b) => { const x = c.sort(a), y = c.sort(b); return (x < y ? -1 : x > y ? 1 : 0) * dir; });
+    fill();
+  }
+  fill();
+  return el("table", {}, thead, tbody);
+}
+
+// ---------- header & overview ----------
+$("meta").textContent = `Generated ${M.meta.generated_at} · results ${M.meta.source} · gate ${M.meta.gate} · locator ${M.meta.locator}` +
+  (M.meta.failure_messages ? " · with failure messages" : "");
+$("theme").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  renderCharts();
+});
+
+function tile(labelText, value, note, hero = false) {
+  return el("div", { class: "tile" + (hero ? " hero" : "") }, el("div", { class: "label", text: labelText }),
+    el("div", { class: "value", text: value }), note ? el("div", { class: "note" }, note) : null);
+}
+(function overview() {
+  const o = M.overview, latest = o.latest;
+  const rate = latest ? (latest.nightly_rate ?? latest.main_rate) : null;
+  $("overview-sub").textContent = latest
+    ? `Latest main state ${label(latest)} (${latest.committed_at.slice(0, 16).replace("T", " ")}), reference ${o.reference || "–"}.`
+    : "No measured main state yet.";
+  const verdict = latest ? badge(stateVerdict(latest)) : null;
+  $("tiles").append(
+    tile("Latest pass rate", pct(rate), verdict, true),
+    tile("Open alerts", String(o.open_alerts), `${o.alerts} alerts in total`),
+    tile("Main states measured", String(o.states), null),
+    tile("Pull requests", String(o.prs), `${o.prs_regressed} with a possible regression`),
+    tile("Runs", String(o.runs.complete), `${o.runs.incomplete} incomplete · ${o.runs.rejected} rejected`),
+    tile("Last run", o.last_run_at ? o.last_run_at.slice(0, 16).replace("T", " ") : "–", null),
+  );
+})();
+
+// ---------- timeline ----------
+function timelineChart() {
+  const box = $("timeline-chart"); box.replaceChildren();
+  const states = M.states;
+  if (!states.length) { box.append(el("p", { class: "empty", text: "No states yet." })); return; }
+  const W = Math.max(box.clientWidth, 320), H = 280, m = { t: 14, r: 24, b: 56, l: 52 };
+  const vals = states.flatMap((st) => [st.main_rate, st.nightly_rate]).filter((v) => v !== null);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const padY = Math.max(0.02, (hi - lo) * 0.15); lo = Math.max(0, lo - padY); hi = Math.min(1, hi + padY);
+  const x = (i) => m.l + (states.length === 1 ? (W - m.l - m.r) / 2 : i * (W - m.l - m.r) / (states.length - 1));
+  const y = (v) => m.t + (1 - (v - lo) / (hi - lo || 1)) * (H - m.t - m.b);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Pass rate over main states" });
+  const ticks = 5;
+  for (let k = 0; k <= ticks; k++) {
+    const v = lo + (hi - lo) * k / ticks;
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 }));
+    const t = s("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end", fill: css("--muted"), "font-size": 11 }); t.textContent = (v * 100).toFixed(0) + "%"; svg.append(t);
+  }
+  svg.append(s("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1 }));
+  const every = Math.ceil(states.length / Math.max(1, Math.floor((W - m.l - m.r) / 90)));
+  states.forEach((st, i) => {
+    if (i % every) return;
+    const t = s("text", { x: x(i), y: H - m.b + 16, "text-anchor": "middle", fill: css("--muted"), "font-size": 11 }); t.textContent = label(st); svg.append(t);
+    const d = s("text", { x: x(i), y: H - m.b + 30, "text-anchor": "middle", fill: css("--muted"), "font-size": 10 }); d.textContent = st.committed_at.slice(5, 10); svg.append(d);
+  });
+  const series = [{ key: "main_rate", name: "1 run (on merge)", color: css("--series-1") }, { key: "nightly_rate", name: "10 runs (nightly)", color: css("--series-2") }];
+  for (const se of series) {
+    let path = "", pen = false;
+    states.forEach((st, i) => { const v = st[se.key]; if (v === null) { pen = false; return; } path += (pen ? "L" : "M") + x(i) + "," + y(v); pen = true; });
+    if (path) svg.append(s("path", { d: path, fill: "none", stroke: se.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    states.forEach((st, i) => { const v = st[se.key]; if (v !== null) svg.append(s("circle", { cx: x(i), cy: y(v), r: 4, fill: se.color, stroke: css("--surface"), "stroke-width": 2 })); });
+  }
+  states.forEach((st, i) => {
+    const verdict = stateVerdict(st); const info = STATUS[verdict];
+    if (!info || ["ok", "first", "no-baseline", "cleared"].includes(verdict)) return;
+    const v = st.nightly_rate ?? st.main_rate; if (v === null) return;
+    const g = s("text", { x: x(i), y: y(v) - 10, "text-anchor": "middle", "font-size": 12, fill: css(info.color) }); g.textContent = info.icon; svg.append(g);
+  });
+  const hair = s("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }); svg.append(hair);
+  const hit = s("rect", { x: m.l - 10, y: m.t, width: W - m.l - m.r + 20, height: H - m.t - m.b, fill: "transparent" });
+  hit.addEventListener("pointermove", (evt) => {
+    const r = svg.getBoundingClientRect(); const px = (evt.clientX - r.left) * W / r.width;
+    let best = 0; states.forEach((_, i) => { if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i; });
+    hair.setAttribute("x1", x(best)); hair.setAttribute("x2", x(best)); hair.setAttribute("visibility", "visible");
+    const st = states[best];
+    const rows = [el("div", { text: `${label(st)} · ${st.committed_at.slice(0, 16).replace("T", " ")}` })];
+    for (const se of series) rows.push(el("div", { class: "row" }, el("span", { class: "key-line", style: `background:${se.color}` }), el("span", { class: "v", text: pct(st[se.key]) }), el("span", { class: "muted", text: se.name })));
+    rows.push(badge(stateVerdict(st)));
+    const flagged = [...(st.nightly ? st.nightly.step_flagged.concat(st.nightly.reference_flagged) : []), ...(st.push ? st.push.flagged : [])];
+    if (flagged.length) rows.push(el("div", { class: "muted", text: "flagged: " + [...new Set(flagged)].join(", ") }));
+    if (st.nightly && st.nightly.reason) rows.push(el("div", { class: "muted", text: st.nightly.reason }));
+    showTip(evt, rows);
+  });
+  hit.addEventListener("pointerleave", () => { hair.setAttribute("visibility", "hidden"); hideTip(); });
+  svg.append(hit);
+  box.append(svg);
+  $("timeline-legend").replaceChildren(
+    ...series.map((se) => el("span", {}, el("span", { class: "key-line", style: `background:${se.color}` }), se.name)),
+    ...["confirmed", "ongoing", "suspected", "improved", "not-comparable"].map((k) => el("span", {}, el("span", { style: `color:var(${STATUS[k].color})`, text: STATUS[k].icon }), STATUS[k].text)));
+}
+$("timeline-table").append(table([
+  { title: "State", render: (st) => st.commit_url ? el("a", { href: st.commit_url, text: label(st) }) : label(st), sort: (st) => st.committed_at },
+  { title: "Committed", render: (st) => st.committed_at.slice(0, 16).replace("T", " "), sort: (st) => st.committed_at },
+  { title: "1 run", num: true, render: (st) => pct(st.main_rate), sort: (st) => st.main_rate ?? -1 },
+  { title: "10 runs", num: true, render: (st) => pct(st.nightly_rate), sort: (st) => st.nightly_rate ?? -1 },
+  { title: "Nightly z", num: true, render: (st) => zf(st.nightly && st.nightly.z), sort: (st) => (st.nightly && st.nightly.z) ?? 0 },
+  { title: "Verdict", render: (st) => badge(stateVerdict(st)) },
+  { title: "Flagged", render: (st) => [...new Set([...(st.nightly ? st.nightly.step_flagged.concat(st.nightly.reference_flagged) : []), ...(st.push ? st.push.flagged : [])])].join(", ") || "–" },
+  { title: "Tests added / removed / edited", render: (st) => `${st.coverage.added} / ${st.coverage.removed} / ${st.coverage.edited}` },
+], M.states, { sortable: true }));
+
+// ---------- topics heatmap ----------
+let heatMode = "rate";
+const SEQ = ["--seq-1", "--seq-2", "--seq-3", "--seq-4", "--seq-5", "--seq-6", "--seq-7"];
+const DIV = ["--div-neg-3", "--div-neg-2", "--div-neg-1", "--neutral", "--div-pos-1", "--div-pos-2", "--div-pos-3"];
+function heatColor(v) {
+  if (v === null) return null;
+  if (heatMode === "rate") {
+    const [lo, hi] = M.heat.rate_domain, f = (v - lo) / (hi - lo || 1);
+    return css(SEQ[Math.max(0, Math.min(6, Math.floor(f * 7)))]);
+  }
+  const steps = [-0.15, -0.075, -0.02, 0.02, 0.075, 0.15];
+  let k = 0; while (k < steps.length && v > steps[k]) k++;
+  return css(DIV[k]);
+}
+function heatChart() {
+  const box = $("heat-chart"); box.replaceChildren();
+  const H = M.heat, states = M.states;
+  if (!H.topics.length) { box.append(el("p", { class: "empty", text: "No topics yet." })); return; }
+  const labelW = Math.min(260, 12 + 7 * Math.max(...H.topics.map((t) => t.length)));
+  const W = Math.max(box.clientWidth, 320), cellH = 22, gap = 2, top = 8, bottom = 46;
+  const cellW = Math.max(14, (W - labelW - 8) / states.length);
+  const Ht = top + H.topics.length * (cellH + gap) + bottom;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${Ht}`, height: Ht, role: "img", "aria-label": "Topic pass rates per state" });
+  const matrix = heatMode === "rate" ? H.rate : H.delta;
+  H.topics.forEach((topic, r) => {
+    const t = s("text", { x: labelW - 8, y: top + r * (cellH + gap) + cellH * 0.7, "text-anchor": "end", fill: css("--ink-2"), "font-size": 11 });
+    t.textContent = topic.length > 36 ? topic.slice(0, 35) + "…" : topic; svg.append(t);
+    states.forEach((st, c) => {
+      const v = matrix[c][r], flag = H.flag[c][r];
+      const fill = heatColor(v);
+      const xx = labelW + c * cellW, yy = top + r * (cellH + gap);
+      const rect = s("rect", { x: xx, y: yy, width: Math.max(1, cellW - gap), height: cellH, rx: 2, fill: fill || "transparent", stroke: fill ? "none" : css("--grid") });
+      svg.append(rect);
+      if (flag) {
+        const info = STATUS[flag];
+        svg.append(s("circle", { cx: xx + cellW - gap - 6, cy: yy + 6, r: 4, fill: css(info.color), stroke: css("--surface"), "stroke-width": 2 }));
+      }
+      const hit = s("rect", { x: xx, y: yy, width: cellW, height: cellH + gap, fill: "transparent", tabindex: 0 });
+      const show = (evt) => showTip(evt, [
+        el("div", { class: "v", text: heatMode === "rate" ? pct(H.rate[c][r]) : pts(H.delta[c][r]) }),
+        el("div", { text: topic }), el("div", { class: "muted", text: label(st) + " · " + st.committed_at.slice(0, 10) }),
+        el("div", { class: "muted", text: `pass rate ${pct(H.rate[c][r])} · change ${pts(H.delta[c][r])}` }),
+        flag ? badge(flag) : null].filter(Boolean));
+      hit.addEventListener("pointermove", show); hit.addEventListener("pointerleave", hideTip);
+      hit.addEventListener("focus", (e) => { const b = e.target.getBoundingClientRect(); show({ clientX: b.right, clientY: b.bottom }); });
+      hit.addEventListener("blur", hideTip);
+      svg.append(hit);
+    });
+  });
+  const every = Math.ceil(states.length / Math.max(1, Math.floor((W - labelW) / 80)));
+  states.forEach((st, c) => {
+    if (c % every) return;
+    const t = s("text", { x: labelW + c * cellW + cellW / 2, y: Ht - bottom + 16, "text-anchor": "middle", fill: css("--muted"), "font-size": 11 }); t.textContent = label(st); svg.append(t);
+  });
+  box.append(svg);
+  const scale = $("heat-scale"); scale.replaceChildren();
+  const stops = heatMode === "rate" ? SEQ : DIV;
+  scale.append(el("span", { text: heatMode === "rate" ? pct(M.heat.rate_domain[0], 0) + " or less" : "−15 pts" }), el("span", { class: "bar" }, ...stops.map((v) => el("i", { style: `background:var(${v})` }))),
+    el("span", { text: heatMode === "rate" ? "100 %" : "+15 pts" }), el("span", { class: "badge" }, el("span", { class: "dot", style: "background:var(--critical)" }), "▼ flagged regression"),
+    el("span", { class: "badge" }, el("span", { class: "dot", style: "background:var(--good)" }), "▲ flagged improvement"));
+}
+for (const [id, mode] of [["mode-rate", "rate"], ["mode-delta", "delta"]]) {
+  $(id).addEventListener("click", () => { heatMode = mode; $("mode-rate").setAttribute("aria-pressed", mode === "rate"); $("mode-delta").setAttribute("aria-pressed", mode === "delta"); heatChart(); });
+}
+(function heatTable() {
+  const H = M.heat;
+  const cols = [{ title: "Topic", key: "topic" }, ...M.states.map((st, c) => ({ title: label(st), num: true, render: (row) => {
+    const v = H.rate[c][row.r], f = H.flag[c][row.r]; return (f ? STATUS[f].icon + " " : "") + pct(v); } }))];
+  $("heat-table").append(table(cols, H.topics.map((topic, r) => ({ topic, r }))));
+})();
+
+// ---------- alerts ----------
+function whereBlock(where) {
+  if (!where) return el("p", { class: "muted", text: "No location recorded." });
+  const box = el("div");
+  box.append(el("h3", { text: "Where" }), table([
+    { title: "Scope", key: "scope" }, { title: "Before", num: true, render: (x) => pct(x.rate_b) },
+    { title: "After", num: true, render: (x) => pct(x.rate_s) }, { title: "z", num: true, render: (x) => zf(x.z) },
+  ], where.scopes));
+  if (where.cases.length) box.append(el("h3", { text: "Most affected test cases" }), table([
+    { title: "Test case", key: "hrid" }, { title: "Topic", key: "family" }, { title: "Before", num: true, key: "before" },
+    { title: "After", num: true, key: "after" }, { title: "p", num: true, render: (c) => c.p === null ? "–" : c.p.toPrecision(2) },
+    { title: "q", num: true, render: (c) => c.q === null ? "–" : c.q.toPrecision(2) },
+  ], where.cases));
+  return box;
+}
+(function alerts() {
+  const box = $("alert-cards");
+  if (!M.alerts.length) { box.append(el("p", { class: "empty", text: "No confirmed regressions." })); return; }
+  for (const a of M.alerts.slice().reverse()) {
+    box.append(el("div", { class: "card" },
+      el("div", { class: "controls" }, badge(a.open ? "confirmed" : "closed"), el("strong", { text: (a.open ? "Open" : "Closed") + ` alert ${a.id}` }),
+        el("span", { class: "muted", text: `at state ${a.state}` })),
+      el("div", {}, "Scopes: ", ...a.scopes.map((x) => el("span", { class: "chip", text: x }))),
+      el("div", { class: "muted", text: `Suspect states: ${a.suspect_range.join(", ")} · reference ${a.reference}` +
+        (a.still_regressed_at.length ? ` · still below at ${a.still_regressed_at.join(", ")}` : "") + (a.closed_by ? ` · closed by ${a.closed_by}` : "") }),
+      whereBlock(a.where),
+      el("details", {}, el("summary", { text: "History" }), table([{ title: "When", key: "at" }, { title: "Event", key: "kind" }, { title: "State", key: "state" }], a.history))));
+  }
+})();
+
+// ---------- pull requests ----------
+(function prs() {
+  const box = $("pr-table");
+  if (!M.prs.length) { box.append(el("p", { class: "empty", text: "No pull request runs." })); return; }
+  box.append(table([
+    { title: "Pull request", render: (p) => p.url ? el("a", { href: p.url, text: `${p.repo}#${p.number}` }) : `${p.repo}#${p.number}`, sort: (p) => p.repo + p.number },
+    { title: "Head", key: "head" },
+    { title: "Verdict", render: (p) => badge(p.status), sort: (p) => p.status },
+    { title: "main → PR", num: true, render: (p) => p.overall ? `${pct(p.overall.rate_b)} → ${pct(p.overall.rate_s)}` : "–" },
+    { title: "z", num: true, render: (p) => p.overall ? zf(p.overall.z) : "–", sort: (p) => p.overall ? p.overall.z : 0 },
+    { title: "Regressed", render: (p) => p.flagged.join(", ") || "–" },
+    { title: "Improved", render: (p) => p.improved.join(", ") || "–" },
+    { title: "Where", render: (p) => p.where && p.where.scopes.length ? p.where.scopes.map((x) => `${x.scope} ${pct(x.rate_b, 0)}→${pct(x.rate_s, 0)}`).join(" · ") : (p.reason || "–") },
+    { title: "Logs", render: (p) => p.run_url ? el("a", { href: p.run_url, text: "run" }) : "–" },
+  ], M.prs, { sortable: true }));
+})();
+
+// ---------- gates ----------
+(function gates() {
+  const G = M.gates;
+  $("gates-sub").textContent = `Each comparison judged by every registered gate at its default settings. ${G.decides} makes the decisions; the others are shown for comparison (testimate_threshold and poisson_binomial are exact ports of testimate's gates).`;
+  if (!G.rows.length) { $("gate-table").append(el("p", { class: "empty", text: "No comparable states yet." })); return; }
+  const cell = (v) => {
+    const parts = [];
+    if (v.regressed.length) parts.push(el("div", { class: "verdict" }, el("span", { class: "dot", style: "background:var(--critical)" }), " ▼ " + v.regressed.join(", ")));
+    if (v.improved.length) parts.push(el("div", { class: "verdict" }, el("span", { class: "dot", style: "background:var(--good)" }), " ▲ " + v.improved.join(", ")));
+    return parts.length ? el("div", {}, ...parts) : el("span", { class: "muted", text: "·" });
+  };
+  const cols = [{ title: "Comparison", render: (r) => el("div", {}, el("div", { text: r.label }), el("div", { class: "muted", text: r.comparison })) },
+    ...G.names.map((n) => ({ title: n === G.decides ? `${n} (decides)` : n, render: (r) => cell(r.verdicts[n]) }))];
+  $("gate-table").append(table(cols, G.rows.slice().reverse()));
+  const counts = el("p", { class: "muted", text: "Flags in total: " + G.names.map((n) => {
+    const reg = G.rows.filter((r) => r.verdicts[n].regressed.length).length, imp = G.rows.filter((r) => r.verdicts[n].improved.length).length;
+    return `${n} ▼${reg} ▲${imp}`; }).join(" · ") });
+  $("gate-table").append(counts);
+})();
+
+// ---------- cases ----------
+function spark(rates) {
+  const W = 120, H = 24, vals = rates.map((v, i) => [i, v]).filter(([, v]) => v !== null);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, "aria-hidden": "true" });
+  if (!vals.length) return svg;
+  const x = (i) => rates.length === 1 ? W / 2 : 2 + i * (W - 4) / (rates.length - 1), y = (v) => 2 + (1 - v) * (H - 4);
+  svg.append(s("path", { d: vals.map(([i, v], k) => (k ? "L" : "M") + x(i) + "," + y(v)).join(""), fill: "none", stroke: css("--series-2"), "stroke-width": 2, "stroke-linejoin": "round" }));
+  const [li, lv] = vals[vals.length - 1]; svg.append(s("circle", { cx: x(li), cy: y(lv), r: 3, fill: css("--series-2") }));
+  return svg;
+}
+const latestRate = (c) => { for (let i = c.rates.length - 1; i >= 0; i--) if (c.rates[i] !== null) return c.rates[i]; return null; };
+function caseDetail(c) {
+  const box = $("case-detail"); box.replaceChildren();
+  box.append(el("h3", { text: c.hrid }), el("div", { class: "muted", text: `${c.family} · ${c.kind} · ${c.definitions} definition(s)` }));
+  const W = Math.max(box.clientWidth, 280), H = 180, m = { t: 10, r: 12, b: 34, l: 40 }, states = M.states;
+  const x = (i) => m.l + (states.length === 1 ? (W - m.l - m.r) / 2 : i * (W - m.l - m.r) / (states.length - 1));
+  const y = (v) => m.t + (1 - v) * (H - m.t - m.b);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Pass rate of " + c.hrid });
+  for (const v of [0, 0.5, 1]) {
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css("--grid") }));
+    const t = s("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end", fill: css("--muted"), "font-size": 11 }); t.textContent = (v * 100) + "%"; svg.append(t);
+  }
+  for (const i of c.definition_changed_at) svg.append(s("line", { x1: x(i), x2: x(i), y1: m.t, y2: H - m.b, stroke: css("--axis") }));
+  let d = "", pen = false;
+  c.rates.forEach((v, i) => { if (v === null) { pen = false; return; } d += (pen ? "L" : "M") + x(i) + "," + y(v); pen = true; });
+  svg.append(s("path", { d, fill: "none", stroke: css("--series-2"), "stroke-width": 2, "stroke-linejoin": "round" }));
+  c.rates.forEach((v, i) => {
+    if (v === null) return;
+    const dot = s("circle", { cx: x(i), cy: y(v), r: 4, fill: css("--series-2"), stroke: css("--surface"), "stroke-width": 2 }); svg.append(dot);
+    const hit = s("circle", { cx: x(i), cy: y(v), r: 12, fill: "transparent" });
+    hit.addEventListener("pointermove", (evt) => showTip(evt, [el("div", { class: "v", text: pct(v) }), el("div", { text: label(states[i]) }), el("div", { class: "muted", text: `${c.runs[i]} runs` })]));
+    hit.addEventListener("pointerleave", hideTip); svg.append(hit);
+  });
+  box.append(svg);
+  if (c.definition_changed_at.length) box.append(el("p", { class: "muted", text: "Vertical lines: the test's definition changed (states before are not compared with states after)." }));
+  box.append(el("details", {}, el("summary", { text: "Table view" }), table([
+    { title: "State", render: (r) => label(r.st) }, { title: "Pass rate", num: true, render: (r) => pct(r.v) }, { title: "Runs", num: true, render: (r) => r.n }],
+    states.map((st, i) => ({ st, v: c.rates[i], n: c.runs[i] })).filter((r) => r.n))));
+  box.append(el("h3", { text: "Failure messages" }));
+  if (c.failures.length) box.append(el("ul", {}, ...c.failures.map((f) => el("li", {}, el("code", { text: f })))));
+  else box.append(el("p", { class: "muted", text: M.meta.failure_messages ? "No failure messages in the included logs." : "Not included (run the report with --logs)." }));
+}
+function caseTable() {
+  const q = $("case-search").value.trim().toLowerCase(), f = $("case-filter").value;
+  const rows = M.cases.filter((c) => (!q || c.hrid.toLowerCase().includes(q) || c.family.toLowerCase().includes(q)) &&
+    (!f || (f === "changed" ? c.definition_changed_at.length : f === "failures" ? c.failures.length : c.kind === f)));
+  $("case-count").textContent = `${rows.length} of ${M.cases.length}`;
+  $("case-table").replaceChildren(table([
+    { title: "Test case", key: "hrid", sort: (c) => c.hrid }, { title: "Topic", key: "family", sort: (c) => c.family },
+    { title: "Kind", key: "kind", sort: (c) => c.kind },
+    { title: "Latest", num: true, render: (c) => pct(latestRate(c)), sort: (c) => latestRate(c) ?? -1 },
+    { title: "History", render: (c) => spark(c.rates) },
+    { title: "Failures", num: true, render: (c) => c.failures.length || "–", sort: (c) => c.failures.length },
+  ], rows.slice(0, 500), { sortable: true, onSelect: caseDetail }));
+  if (rows.length > 500) $("case-table").append(el("p", { class: "muted", text: "Showing the first 500; refine the search." }));
+}
+$("case-search").addEventListener("input", caseTable); $("case-filter").addEventListener("change", caseTable);
+
+// ---------- runs & decisions ----------
+$("runs-sub").textContent = `${M.overview.runs.complete} complete, ${M.overview.runs.incomplete} incomplete, ${M.overview.runs.rejected} rejected. Incomplete runs are retried on every analyzer pass; rejected runs do not follow the contract.`;
+$("run-table").append(table([
+  { title: "Run", render: (r) => r.url ? el("a", { href: r.url, text: r.run_id }) : r.run_id, sort: (r) => r.run_id },
+  { title: "Kind", key: "kind", sort: (r) => r.kind }, { title: "Created", render: (r) => (r.created_at || "").slice(0, 16).replace("T", " "), sort: (r) => r.created_at },
+  { title: "Status", key: "status", sort: (r) => r.status }, { title: "Shards", num: true, key: "shards" },
+  { title: "Runs per case", num: true, key: "runs_per_case" }, { title: "Executions", num: true, key: "executions", sort: (r) => r.executions },
+  { title: "Errors", num: true, key: "errors", sort: (r) => r.errors }, { title: "Detail", render: (r) => r.detail || "–" },
+], M.runs, { sortable: true }));
+$("decision-table").append(table([
+  { title: "When", key: "at" }, { title: "Record", key: "kind" },
+  { title: "State / run", render: (r) => (r.state || r.run_id || "").replace("sha256:", "").slice(0, 16) },
+  { title: "Verdict / status", render: (r) => r.verdict || r.status || r.reason || "–" },
+  { title: "Details", render: (r) => [r.alert && `alert ${r.alert}`, r.gate && `gate ${r.gate}`, r.reason, (r.step_flagged || []).length && `step: ${r.step_flagged.join(", ")}`].filter(Boolean).join(" · ") || "–" },
+], M.decisions.slice().reverse()));
+
+function renderCharts() { timelineChart(); heatChart(); }
+renderCharts(); caseTable();
+let resizeTimer; addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderCharts, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
+})();
+</script>
+</body>
+</html>

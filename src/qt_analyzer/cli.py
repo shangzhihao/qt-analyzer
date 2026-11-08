@@ -1,4 +1,4 @@
-"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates|case`."""
+"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates|case|report`."""
 
 from __future__ import annotations
 
@@ -149,7 +149,44 @@ def main(argv: list[str] | None = None) -> int:
     p_case.add_argument("--delta", type=float, default=0.10,
                         help="change size for the runs-needed hint")  # fmt: skip
 
+    p_report = sub.add_parser("report", help="write a comprehensive HTML report")
+    source = p_report.add_mutually_exclusive_group()
+    source.add_argument("--results", type=Path, help="local copy of the results")
+    source.add_argument("--fetch", action="store_true", help="download the published results")
+    p_report.add_argument("--repo", default=DEFAULT_REPO, help="repository that publishes results")
+    p_report.add_argument("--cache", type=Path, default=Path(".qt-cache"))
+    logs = p_report.add_mutually_exclusive_group()
+    logs.add_argument("--logs", type=Path, help="runs folder (or log files) for failure messages")
+    logs.add_argument("--logs-github", metavar="OWNER/REPO",
+                      help="failure messages from that repo's Actions artifacts")  # fmt: skip
+    p_report.add_argument("--logs-runs", type=int, default=20, help="newest runs to read logs from")
+    p_report.add_argument("--out", type=Path, default=Path("report.html"))
+    p_report.add_argument("--config", type=Path, default=Path("analyzer.toml"))
+
     args = parser.parse_args(argv)
+    if args.command == "report":
+        from qt_analyzer.html_report.html import render
+        from qt_analyzer.html_report.model import build_model, failure_samples
+
+        results_dir = args.results or fetch_results(args.cache, args.repo)
+        failures = None
+        if args.logs:
+            paths = (
+                [args.logs] if args.logs.is_file() else sorted(args.logs.rglob("shard-*.jsonl*"))
+            )
+            failures = failure_samples(paths)
+        elif args.logs_github:
+            token = os.environ.get("QT_PAT") or os.environ.get("GITHUB_TOKEN")
+            store = GitHubArtifactsStore(args.logs_github, token, args.cache / "artifacts")
+            newest = store.list_runs()[-args.logs_runs :]
+            failures = failure_samples([p for run in newest for p in store.get_shard_logs(run)])
+        model = build_model(ResultStore(results_dir), Config.load(args.config), failures=failures,
+                            source=str(results_dir))  # fmt: skip
+        args.out.write_text(render(model), encoding="utf-8")
+        print(f"wrote {args.out} ({args.out.stat().st_size // 1024} KB): {len(model['states'])} "
+              f"states, {len(model['alerts'])} alerts, {len(model['prs'])} PRs, "
+              f"{len(model['cases'])} test cases")  # fmt: skip
+        return 0
     if args.command == "case":
         results_dir = args.results or fetch_results(args.cache, args.repo)
         main_counts, states = case_check.main_counts(ResultStore(results_dir), args.states)
