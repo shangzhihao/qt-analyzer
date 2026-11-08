@@ -130,6 +130,26 @@ threshold = 0.05
 Every registered gate then appears in `gates --example` and `--benchmark`, and
 `gate = "my_gate"` makes it decide the analysis.
 
+## Locators: where is the change?
+
+A gate answers whether quality changed; a locator says where. When the gate
+flags a regression or improvement, the configured locator (`locator = "ranked"`
+in `analyzer.toml`, settings in `[locators.<name>]`) ranks the scopes (topics,
+reliable cases, flaky cases) and then the most affected test cases. The result
+is recorded with the alert, shown in PR comments ("**Where:** …") and in
+`status`. Locators register like gates (`@register_locator("name")`).
+
+```sh
+uv run qt-analyzer gates --locate --runs 1  --baseline-runs 40   # PR-like
+uv run qt-analyzer gates --locate --runs 10 --baseline-runs 10   # nightly-like
+```
+
+On the real suite's distribution, whenever the gate fires, `ranked` puts the
+right topic first in essentially every trial, and its top-10 cases are 98–99 %
+right for a topic drop. A few collapsed cases among 1,934 need the nightly's
+runs (98 % found in the top 10, vs 80 % from one run); `qt-analyzer case`
+confirms a single suspect locally.
+
 ## Contract
 
 Schema version 2. A run directory holds:

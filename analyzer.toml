@@ -20,6 +20,8 @@ pr_case_p = 0.05                 # PR single case marked "suspected"
 gate = "zscore_strata"
 # Modules that register more gates with @register_gate (see gates.py).
 gate_modules = []
+# Locator that says where a flagged change is (see locators.py).
+locator = "ranked"
 
 # Settings per gate, passed as keyword arguments; [gates.<name>.<stage>]
 # overrides them for "push", "nightly" or "pr".
@@ -53,3 +55,7 @@ probability = 0.99
 
 [gates.poisson_binomial]
 significance_level = 0.05
+
+[locators.ranked]
+top_scopes = 3
+top_cases = 10

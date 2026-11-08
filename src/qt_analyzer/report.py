@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import Any
 
 from qt_analyzer.analyse import PrResult
+from qt_analyzer.locators import format_location
 from qt_analyzer.stats import ScopeTest
 
 MARKER = "<!-- qt-report -->"
@@ -68,7 +69,10 @@ def pr_comment(pr: PrResult) -> str:
         lines += [_row(f"`{f}`", t) for f, t in changed]
         if pr.improved:
             lines += ["", f"Improved: {', '.join(f'`{s}`' for s in pr.improved)}."]
-        if pr.suspected_cases:
+        if pr.location is not None:
+            lines += [""] + [f"**{line.split(': ', 1)[0].capitalize()}:** {line.split(': ', 1)[1]}"
+                             for line in format_location(pr.location)]  # fmt: skip
+        elif pr.suspected_cases:
             labels = {case.case_key: case.hrid for case in c.cases}
             shown = [f"`{labels.get(k, k)}`" for k in pr.suspected_cases[:10]]
             more = len(pr.suspected_cases) - len(shown)

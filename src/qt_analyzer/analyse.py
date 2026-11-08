@@ -15,6 +15,7 @@ from typing import Any
 
 from qt_analyzer.contract import Manifest, State, state_key
 from qt_analyzer.decisions import DecisionLog, alert_id, config_hash
+from qt_analyzer.locators import Location, make_locator
 from qt_analyzer.stats import (
     Pair,
     ScopeTest,
@@ -47,6 +48,9 @@ class Config:
     # above per stage; other gates use their own settings from [gates.<name>].
     gate: str = "zscore"
     gate_params: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Which locator says where a flagged change is (see locators.py).
+    locator: str = "ranked"
+    locator_params: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path | None) -> Config:
@@ -58,7 +62,10 @@ class Config:
         from qt_analyzer.gates import load_gate_modules
 
         load_gate_modules(analysis.get("gate_modules", []))
-        return cls(**known | {"gate_params": data.get("gates", {})})
+        return cls(
+            **known
+            | {"gate_params": data.get("gates", {}), "locator_params": data.get("locators", {})}
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +224,16 @@ def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str]
     return verdict.regressed, verdict.improved
 
 
+def locate(comparison: Comparison, direction: str, flagged: list[str], config: Config) -> Location:
+    """Where a flagged change is, by the configured locator."""
+    locator = make_locator(config.locator, config.locator_params.get(config.locator))
+    return locator.locate(comparison, direction, flagged)
+
+
+def location_json(location: Location | None) -> dict[str, Any] | None:
+    return asdict(location) if location else None
+
+
 STAGES = ("push", "nightly", "pr")
 
 
@@ -309,6 +326,7 @@ class Alert:
     open: bool = True
     still_regressed_at: list[str] = field(default_factory=list)
     closed_by: str | None = None
+    where: dict[str, Any] | None = None  # the locator's ranking when the alert opened
 
 
 @dataclass
@@ -326,6 +344,7 @@ class PrResult:
     run_url: str = ""
     nearest_baseline: bool = False  # the stated baseline was not measured
     reason: str = ""  # why it was not comparable
+    location: Location | None = None  # where the change is, when one was flagged
 
 
 @dataclass
@@ -429,7 +448,7 @@ def _apply(effects: list[dict[str, Any]], alerts: dict[str, Alert], open_ids: li
     for e in effects:
         if e["action"] == "opened":
             alerts[e["id"]] = Alert(e["id"], e["state"], e["suspect_range"], e["scopes"],
-                                    e["cases"], e["reference"])  # fmt: skip
+                                    e["cases"], e["reference"], where=e.get("where"))  # fmt: skip
             open_ids.append(e["id"])
         elif e["action"] == "extended":
             alerts[e["id"]].still_regressed_at.append(e["state"])
@@ -518,9 +537,13 @@ def _decide(
         # a new drop (a step, or slow drift while no alert is open)
         new_id = alert_id(key, log.alert_ids() | set(alerts))
         suspect = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
+        source = step if step_flagged else vs_ref
+        flagged = step_flagged or ref_flagged
+        where = location_json(locate(source, "regression", flagged, config))
         effects.append({"action": "opened", "id": new_id, "state": key, "suspect_range": suspect,
                         "scopes": sorted(set(step_flagged) | set(ref_flagged)),
-                        "cases": cases_flagged, "reference": reference.state.key})  # fmt: skip
+                        "cases": cases_flagged, "reference": reference.state.key,
+                        "where": where})  # fmt: skip
         verdict, reference_after = "confirmed", reference
     elif ref_flagged and open_ids:
         effects.append({"action": "extended", "id": open_ids[-1], "state": key})
@@ -630,6 +653,11 @@ def _prs(
                            head_sha=pr.head_sha, baseline=base_key,
                            status="regressed" if flagged else "ok", flagged=flagged,
                            improved=improved, suspected_cases=suspected)  # fmt: skip
+        location = None
+        if flagged:
+            location = locate(comparison, "regression", flagged, config)
+        elif improved:
+            location = locate(comparison, "improvement", improved, config)
         results.append(
             PrResult(
                 repo,
@@ -645,6 +673,7 @@ def _prs(
                 m.producer.get("run_url", ""),
                 nearest,
                 reason,
+                location,
             )
         )
     return results

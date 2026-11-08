@@ -253,3 +253,87 @@ def build_gates(names: Sequence[str] | None, params: dict[str, dict]) -> dict[st
         return {k: v for k, v in params.get(name, {}).items() if k not in stages}
 
     return {name: make_gate(name, base(name)) for name in names}
+
+
+# ---------------------------------------------------------------------------
+# locator benchmark
+
+
+LOCATOR_SCENARIOS = {
+    # scenario name -> (direction, truth scope from the choice, or None)
+    "one topic -30 pts": ("regression", lambda ch: ch.topics[0]),
+    "one topic -30, two +15 (masked)": ("regression", lambda ch: ch.topics[0]),
+    "flaky cases -30 pts": ("regression", lambda ch: "flaky cases"),
+    "five cases collapse to 0%": ("regression", lambda ch: None),
+    "one topic +30 pts": ("improvement", lambda ch: ch.topics[0]),
+}
+
+
+def locator_benchmark(
+    gate: Gate,
+    locator,
+    *,
+    population: list[SimCase] | None = None,
+    trials: int = 300,
+    baseline_runs: int = 20,
+    runs: int = 1,
+    seed: int = 1,
+) -> dict[str, dict[str, float]]:
+    """scenario -> fired, scope@1, case precision@10, case recall@10.
+
+    The locator runs only when the gate flagged the change (as in production);
+    scope@1 and the case scores are averaged over those trials. Truly changed
+    cases are those whose pass rate the scenario moved in the flagged direction;
+    recall@10 counts them against how many a top-10 list can hold.
+    """
+    cases = population or synthetic_population()
+    rng = random.Random(seed)
+    by_name = {s.name: s for s in SCENARIOS}
+    table = {}
+    for name, (direction, truth_scope) in LOCATOR_SCENARIOS.items():
+        scenario = by_name[name]
+        fired = scope_hits = scope_trials = 0
+        precision = recall = 0.0
+        for _ in range(trials):
+            choice = _choose(cases, rng)
+            rates = [scenario.shift(c, choice) for c in cases]
+            sign = -1 if direction == "regression" else 1
+            changed = {c.key for c, r in zip(cases, rates, strict=True) if sign * (r - c.p) > 0}
+            base = _draw(cases, [c.p for c in cases], baseline_runs, rng)
+            comparison = compare(_draw(cases, rates, runs, rng), base)
+            verdict = gate.judge(comparison)
+            flagged = verdict.regressed if direction == "regression" else verdict.improved
+            if not flagged:
+                continue
+            fired += 1
+            location = locator.locate(comparison, direction, flagged)
+            scope = truth_scope(choice)
+            if scope is not None:
+                scope_trials += 1
+                scope_hits += bool(location.scopes) and location.scopes[0].scope == scope
+            top = {c.case_key for c in location.cases}
+            if top:
+                precision += len(top & changed) / len(top)
+            # of the changed cases a top-10 list can hold
+            recall += len(top & changed) / max(min(len(changed), len(top) or 1), 1)
+        table[name] = {
+            "fired": fired / trials,
+            "scope@1": scope_hits / scope_trials if scope_trials else float("nan"),
+            "precision@10": precision / fired if fired else float("nan"),
+            "recall@10": recall / fired if fired else float("nan"),
+        }
+    return table
+
+
+def format_locator_benchmark(table: dict[str, dict[str, float]]) -> str:
+    lines = [
+        f"{'scenario':34} {'gate fired':>10} {'scope@1':>8} {'precision@10':>13} {'recall@10':>10}"
+    ]
+    for name, row in table.items():
+
+        def pct(x: float) -> str:
+            return "-" if x != x else f"{x:.0%}"
+
+        lines.append(f"{name:34} {pct(row['fired']):>10} {pct(row['scope@1']):>8} "
+                     f"{pct(row['precision@10']):>13} {pct(row['recall@10']):>10}")  # fmt: skip
+    return "\n".join(lines)
