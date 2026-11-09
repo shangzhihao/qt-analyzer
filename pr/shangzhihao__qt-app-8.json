@@ -1,0 +1,90 @@
+{
+  "baseline": "sha256:170fb2817f086ee236af1c2cee712fc8a5f1edbbc09711d7197cb23f2bc18f58",
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.840909090909091,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 0.9909090909090909,
+        "rate_s": 1.0,
+        "z": 0.0
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.8272727272727274,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.890909090909091,
+        "rate_s": 0.9,
+        "z": 0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.8545454545454545,
+        "rate_s": 0.85,
+        "z": -0.0
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.909090909090909,
+        "rate_s": 0.95,
+        "z": 0.20687816215116692
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.5999999999999999,
+        "rate_s": 0.6,
+        "z": 0.0
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.968181818181818,
+        "rate_s": 0.95,
+        "z": -0.0
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.7454545454545455,
+        "rate_s": 0.75,
+        "z": 0.0
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 0.890909090909091,
+        "rate_s": 0.9,
+        "z": 0.0
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.8518181818181816,
+      "rate_s": 0.86,
+      "z": 0.24774516250440137
+    }
+  },
+  "flagged": [],
+  "head_sha": "a5c21d5f3965484c44927431eee77868364e6713",
+  "improved": [],
+  "location": null,
+  "nearest_baseline": false,
+  "number": 8,
+  "reason": "",
+  "repo": "shangzhihao/qt-app",
+  "run_id": "graph-42641080265",
+  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42641080265",
+  "status": "ok",
+  "suspected_cases": []
+}
