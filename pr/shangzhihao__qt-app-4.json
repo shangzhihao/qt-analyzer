@@ -10,81 +10,81 @@
       "benefits": {
         "cases": 20,
         "rate_b": 0.8272727272727274,
-        "rate_s": 0.85,
-        "z": 0.0
+        "rate_s": 0.8,
+        "z": -0.03482975031821434
       },
       "deadlines": {
         "cases": 20,
         "rate_b": 0.9909090909090909,
-        "rate_s": 0.9,
-        "z": -1.01672991252894
+        "rate_s": 1.0,
+        "z": 0.0
       },
       "documents": {
         "cases": 20,
         "rate_b": 0.8363636363636363,
-        "rate_s": 0.85,
-        "z": 0.0
+        "rate_s": 0.8,
+        "z": -0.15752347274628903
       },
       "eligibility": {
         "cases": 20,
         "rate_b": 0.8954545454545453,
-        "rate_s": 0.9,
-        "z": 0.0
+        "rate_s": 0.95,
+        "z": 0.42581051066956044
       },
       "fees": {
         "cases": 20,
         "rate_b": 0.6863636363636363,
-        "rate_s": 0.8,
-        "z": 0.9186765325973263
+        "rate_s": 0.7,
+        "z": 0.0
       },
       "forms": {
         "cases": 20,
         "rate_b": 0.9227272727272726,
-        "rate_s": 0.85,
-        "z": -0.6512334758269746
+        "rate_s": 0.95,
+        "z": 0.03125498365364787
       },
       "housing": {
         "cases": 20,
         "rate_b": 0.8772727272727273,
-        "rate_s": 0.8,
-        "z": -0.6946110787097834
+        "rate_s": 0.9,
+        "z": 0.0
       },
       "income": {
         "cases": 20,
         "rate_b": 0.9727272727272727,
-        "rate_s": 0.9,
-        "z": -0.6980085308152825
+        "rate_s": 0.95,
+        "z": -0.0
       },
       "residence": {
         "cases": 20,
         "rate_b": 0.7318181818181817,
-        "rate_s": 0.7,
-        "z": -0.10170236869650663
+        "rate_s": 0.85,
+        "z": 1.3390762553694184
       },
       "taxes": {
         "cases": 20,
         "rate_b": 0.4590909090909089,
-        "rate_s": 0.5,
-        "z": 0.14271952282070643
+        "rate_s": 0.45,
+        "z": -0.0
       }
     },
     "overall": {
       "cases": 200,
       "rate_b": 0.8199999999999997,
-      "rate_s": 0.805,
-      "z": -0.5086029454835046
+      "rate_s": 0.835,
+      "z": 0.5080181425472213
     }
   },
   "flagged": [],
-  "head_sha": "350d5188df04968db73f5b1392805d21ee48fe47",
+  "head_sha": "1a17e00962e301ab30f5f64ba7691e33e77dfc3e",
   "improved": [],
   "location": null,
   "nearest_baseline": false,
   "number": 4,
   "reason": "",
   "repo": "shangzhihao/qt-app",
-  "run_id": "graph-42581553518",
-  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42581553518",
+  "run_id": "graph-42589826390",
+  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42589826390",
   "status": "ok",
   "suspected_cases": []
 }
