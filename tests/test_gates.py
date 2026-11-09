@@ -159,9 +159,13 @@ def test_equal_false_alarm_tuning_reaches_the_target_without_exceeding_it():
 
 
 def test_candidate_gates_are_registered():
-    assert {"higher_criticism", "min_p_cases", "zscore_split_hc", "zscore_strata"} <= set(
-        available_gates()
-    )
+    assert {
+        "higher_criticism",
+        "min_p_cases",
+        "zscore_split_hc",
+        "zscore_strata",
+        "likelihood_ratio",
+    } <= set(available_gates())
 
 
 def test_higher_criticism_statistic():
@@ -226,3 +230,14 @@ def test_dispersion_is_estimated_from_the_history(tmp_path):
         s.commit("graph", f"g{i}", [dataclasses.replace(c, p=p) for c in cases])
     noisy = s.analyse(Config(gate="zscore_strata")).dispersion["nightly"]
     assert noisy["overall"] > 4 and noisy["overall"] > calm["overall"]
+
+
+def test_likelihood_ratio_weighs_failures_by_surprise():
+    from qt_det.gate_compare import equalise_false_alarms
+
+    gates, _ = equalise_false_alarms(build_gates(["zscore_strata", "likelihood_ratio"], {}),
+                                     0.05, trials=100, seed=7)  # fmt: skip
+    table = benchmark(gates, trials=60, seed=11)
+    assert table["unchanged"]["likelihood_ratio"] <= 0.15
+    for scenario in ("one topic -15 pts", "five cases collapse to 0%"):
+        assert table[scenario]["likelihood_ratio"] > table[scenario]["zscore_strata"]

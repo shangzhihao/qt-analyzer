@@ -25,6 +25,10 @@ uv run qt-det status --results results/
   Verdicts are taken once and recorded in `decisions.jsonl`: a state or PR run
   that was decided keeps its verdict on every later pass, so a threshold change
   or late evidence never rewrites an alert that was already reported.
+  A push or PR run (1 run per case) is compared with its base state pooled
+  with earlier states, but only back past states the nightly judged unchanged,
+  so a change on main that is not yet confirmed is not reported again on later
+  states and PRs.
   Each nightly state is compared with the previous one (step) and with the
   reference. A drop in a step, or a scope below the reference that no open
   alert covers, opens an alert holding only those scopes. Each alert stays open
@@ -106,6 +110,7 @@ shows a regression or an improvement, overall or per family. Registered gates:
 | `poisson_binomial` | testimate's `PoissonBinomialGate` (implemented, not used), ported exactly: total passes vs. the Poisson-binomial distribution of the baseline rates, lower tail at α = 0.05. Total only, regressions only. |
 | `bayes` | Posterior predictive check: are the new passes surprising under the baseline's Beta posteriors, shifted by `delta`? Per scope, both directions. |
 | `zscore_split` | `zscore`'s statistic with the regression budget split between the total (50 %), the flaky cases (20 %) and the topics (rest), and a separate, stricter budget for improvements. |
+| `likelihood_ratio` | For 1-run comparisons: `zscore_strata`'s scopes, but each case weighted by its likelihood ratio for a drop of `delta` in its own pass rate, so a case that nearly always passes counts more when it fails. Flaky cases keep the plain count. |
 
 `gate = "<name>"` in `analyzer.toml` (`[analysis]`) selects the gate that makes
 the decisions — `zscore_strata` in this repository's configuration;

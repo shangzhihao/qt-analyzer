@@ -470,22 +470,32 @@ def analyse_data(
     return Analysis(entries, alerts, reference, prs, log, dispersion)
 
 
-def _starts_regression(entry: TimelineEntry) -> bool:
-    return entry.nightly is not None and entry.nightly.status == "confirmed"
+def _same_as_before(entry: TimelineEntry) -> bool:
+    """The nightly found no change from the previous nightly state, so states
+    before this one measured the same quality and may be pooled with it."""
+    n = entry.nightly
+    return (
+        n is not None
+        and n.status not in ("first", "not-comparable", "confirmed")
+        and not n.step_flagged
+        and not n.step_improved
+    )
 
 
 def _baseline(entries: list[TimelineEntry], i: int, k: int) -> tuple[list[int], list[int]]:
     """Up to k measured states before i, and the unmeasured gap right before i.
 
-    Pooling stops at a state that started a confirmed regression: states before
-    it measured different quality and would make every later state look worse.
+    Pooling goes back only past states the nightly judged unchanged: a change
+    not yet confirmed (or an improvement) would otherwise mix states of
+    different quality into the baseline, and every later state or PR would be
+    reported for it.
     """
     measured: list[int] = []
     gap: list[int] = []
     for j in range(i - 1, -1, -1):
         if entries[j].data.measured:
             measured.append(j)
-            if len(measured) == k or _starts_regression(entries[j]):
+            if len(measured) == k or not _same_as_before(entries[j]):
                 break
         elif not measured:
             gap.append(j)
@@ -724,7 +734,7 @@ def _prs(
             )
             continue
         earlier: list[int] = []
-        if not _starts_regression(entries[i]):
+        if _same_as_before(entries[i]):
             earlier, _ = _baseline(entries, i, config.pool_k - 1)
         base = entries[i].data.all_counts()
         for j in earlier:

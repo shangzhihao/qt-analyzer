@@ -222,3 +222,22 @@ def test_alerts_close_one_by_one_and_the_nightly_sees_improvements(tmp_path):
     assert "family0" in entry.nightly.step_improved
     assert not alerts[drop0].open and alerts[drop0].closed_by == back0
     assert alerts[drop1].open and back0 in alerts[drop1].still_regressed_at
+
+
+def test_a_change_not_yet_confirmed_is_not_blamed_on_later_states_or_prs(tmp_path):
+    cases = make_cases(families=4, per_family=25, p=0.9)
+    regressed = with_family(cases, "family1", 0.3)
+    s = Scenario(tmp_path, cases)
+    for i in range(1, 6):
+        s.commit("graph", f"g{i}")
+    # During the day: a drop and a neutral change after it, 1-run checks only.
+    s.commit("data", "d1", regressed, nightly=False)
+    after = s.commit("graph", "g6", regressed, nightly=False)
+    s.pr("data", 7, "d1", "abc", regressed, "2026-11-03T01:00:00Z")
+
+    analysis = s.analyse()
+    entry = next(e for e in analysis.timeline if e.data.state.key == after)
+    (pr,) = analysis.prs
+
+    assert entry.push.status == "ok"
+    assert pr.status == "ok"
