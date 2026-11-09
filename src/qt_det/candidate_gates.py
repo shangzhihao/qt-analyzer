@@ -11,6 +11,10 @@
   the strength of testimate's p^3 weighting without its blind spot. With
   `dispersion` (φ per kind of scope, estimated by the analysis) each z is
   divided by √φ, for runs that vary more than independent runs.
+- `likelihood_ratio`: `zscore_strata`'s scopes and budget, but each scope is
+  tested with a likelihood ratio against a drop of `delta` in every case's own
+  pass rate, so a failure counts by how surprising it is for that case. Meant
+  for 1-run comparisons, where a plain count wastes the evidence.
 """
 
 from __future__ import annotations
@@ -202,5 +206,106 @@ class ZScoreStrataGate:
             if z <= drop_cut:
                 verdict.regressed.append(scope)
             elif z >= gain_cut:
+                verdict.improved.append(scope)
+        return verdict
+
+
+def _lr_weight(c: CaseResult, delta: float, gain: bool, cap: float) -> float:
+    """How much one pass moves the log likelihood ratio of "pass rate fell by the
+    factor 1 - delta" (or, with `gain`, "failure rate fell by it") against
+    "unchanged": log(q/p) - log((1-q)/(1-p)), as a positive number. Large for a
+    case that nearly always passes, small for a flaky one. p is the case's rate
+    over both sides (choosing by one side biases the test), kept within
+    [1 - cap, cap] so that no single case dominates its scope."""
+    p = (c.passed_s + c.passed_b) / (c.judged_s + c.judged_b)
+    p = min(max(p, 1 - cap), cap)
+    q = 1 - (1 - p) * (1 - delta) if gain else p * (1 - delta)
+    return abs(math.log(q / p) - math.log((1 - q) / (1 - p)))
+
+
+def _lr_z(cases: list[CaseResult], delta: float, gain: bool, cap: float) -> float:
+    """Weighted sum of each case's new passes minus those expected given both
+    sides' total (hypergeometric, so exactly zero mean under "unchanged", also for
+    cases that always pass), standardised. Negative = fewer passes than expected."""
+    total = var = largest = 0.0
+    for c in cases:
+        n, both = c.judged_s, c.judged_s + c.judged_b
+        passes = c.passed_s + c.passed_b
+        if both < 2 or passes in (0, both):
+            continue
+        w = _lr_weight(c, delta, gain, cap)
+        total += w * (c.passed_s - n * passes / both)
+        var += w * w * n * c.judged_b * passes * (both - passes) / (both * both * (both - 1))
+        largest = max(largest, w)
+    if var <= 0:
+        return 0.0
+    # Continuity correction, as in the plain test, at the heaviest case: one pass
+    # of it moves the sum in steps of its weight.
+    correction = 0.5 * largest
+    return math.copysign(max(abs(total) - correction, 0.0), total) / math.sqrt(var)
+
+
+@register_gate("likelihood_ratio")
+@dataclass(frozen=True)
+class LikelihoodRatioGate:
+    """Per-case weighted test for 1-run comparisons, with zscore_strata's scopes.
+
+    The plain count treats every failure alike. Under the alternative "each case's
+    pass rate drops by the factor 1 - delta", the most powerful test (Neyman-
+    Pearson) weighs each case by its log likelihood ratio per pass: large for a
+    case that nearly always passes, small for a flaky one. The weighted sum is
+    taken conditionally on each case's total over both sides, standardised and
+    cut like zscore_strata's z. The flaky cases keep the plain count: a drop there
+    is a few points off each case, which these weights would miss.
+    """
+
+    alpha: float = 0.05
+    improvement_alpha: float = 0.01
+    delta: float = 0.2
+    cap: float = 0.95  # weights are those of a case passing at most this often
+    shares: tuple[float, float, float] = (0.3, 0.2, 0.3)  # total, reliable, flaky
+    dispersion: dict[str, float] | None = None
+
+    def tuned(self, level: float) -> LikelihoodRatioGate:
+        return LikelihoodRatioGate(level, level * self.improvement_alpha / self.alpha,
+                                   self.delta, self.cap, self.shares, self.dispersion)  # fmt: skip
+
+    def judge(self, comparison: Comparison) -> Verdict:
+        from qt_det.gates import _flaky
+        from qt_det.stats import Pair, scope_test, z_threshold
+
+        verdict = Verdict()
+        cases = _cases(comparison)
+        if not cases:
+            return verdict
+        total, reliable_share, flaky_share = self.shares
+        topics = sorted({c.family for c in cases})
+        topic_share = (1 - total - reliable_share - flaky_share) / max(len(topics), 1)
+        scopes = [("overall", "overall", cases, total)]
+        for name, keep, share in (("reliable cases", _reliable, reliable_share),
+                                  ("flaky cases", _flaky, flaky_share)):  # fmt: skip
+            selected = [c for c in cases if keep(c)]
+            if selected:
+                scopes.append((name, name, selected, share))
+        scopes += [(t, "topics", [c for c in cases if c.family == t], topic_share) for t in topics]
+        phi = self.dispersion or {}
+        for scope, kind, selected, share in scopes:
+            scale = math.sqrt(max(phi.get(kind, 1.0), 1.0))
+            if kind == "flaky cases":
+                # A drop over flaky cases is a few points off each, not a share of
+                # each rate: there the plain count is the better test.
+                drop = gain = scope_test([Pair(c.passed_s, c.judged_s, c.passed_b, c.judged_b)
+                                          for c in selected]).z / scale  # fmt: skip
+            else:
+                drop = _lr_z(selected, self.delta, False, self.cap) / scale
+                gain = _lr_z(selected, self.delta, True, self.cap) / scale
+            drop_cut = z_threshold(self.alpha * share)
+            gain_cut = -z_threshold(self.improvement_alpha * share)
+            verdict.detail[scope] = (
+                f"drop z = {drop:+.2f} (at {drop_cut:.2f}), gain z = {gain:+.2f}"
+            )
+            if drop <= drop_cut:
+                verdict.regressed.append(scope)
+            elif gain >= gain_cut:
                 verdict.improved.append(scope)
         return verdict
