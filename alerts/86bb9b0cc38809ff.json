@@ -1,0 +1,153 @@
+{
+  "cases": [],
+  "closed_by": null,
+  "id": "86bb9b0cc38809ff",
+  "open": true,
+  "reference": "sha256:f9590a07e223ed3aa04cef2a003ddd2f0f01d0492ba154ef4d608a7a660d3d49",
+  "scopes": [
+    "fees",
+    "flaky cases",
+    "overall",
+    "taxes"
+  ],
+  "state": "sha256:86bb9b0cc38809ff92611cc0b59620286f5447862ccd1f2418c68661d8334fc3",
+  "still_regressed_at": [],
+  "suspect_range": [
+    "sha256:86bb9b0cc38809ff92611cc0b59620286f5447862ccd1f2418c68661d8334fc3"
+  ],
+  "where": {
+    "cases": [
+      {
+        "case_key": "05d80fd7b6b312d0",
+        "family": "fees",
+        "hrid": "test_answer[fees-07]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.043343653250773995,
+        "passed_b": 10,
+        "passed_s": 6,
+        "q": 0.2889576883384933
+      },
+      {
+        "case_key": "5a5c13cb0c64a0c3",
+        "family": "fees",
+        "hrid": "test_answer[fees-11]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.043343653250773995,
+        "passed_b": 10,
+        "passed_s": 6,
+        "q": 0.2889576883384933
+      },
+      {
+        "case_key": "6069a66a1dcfa7c3",
+        "family": "fees",
+        "hrid": "test_answer[fees-10]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.043343653250773995,
+        "passed_b": 10,
+        "passed_s": 6,
+        "q": 0.2889576883384933
+      },
+      {
+        "case_key": "40514481be323bda",
+        "family": "fees",
+        "hrid": "test_answer[fees-02]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.10526315789473684,
+        "passed_b": 10,
+        "passed_s": 7,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "9677fac4e6d8e27e",
+        "family": "fees",
+        "hrid": "test_answer[fees-14]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.10526315789473684,
+        "passed_b": 10,
+        "passed_s": 7,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "0490cb4b77332415",
+        "family": "fees",
+        "hrid": "test_answer[fees-17]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.23684210526315788,
+        "passed_b": 10,
+        "passed_s": 8,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "0a97f11e3a8bd87f",
+        "family": "fees",
+        "hrid": "test_answer[fees-18]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.23684210526315788,
+        "passed_b": 10,
+        "passed_s": 8,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "3f05de73183d62b8",
+        "family": "fees",
+        "hrid": "test_answer[fees-06]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.23684210526315788,
+        "passed_b": 10,
+        "passed_s": 8,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "6d7d56e572be859b",
+        "family": "fees",
+        "hrid": "test_answer[fees-03]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.23684210526315788,
+        "passed_b": 10,
+        "passed_s": 8,
+        "q": 0.3947368421052631
+      },
+      {
+        "case_key": "86977a47167eb812",
+        "family": "fees",
+        "hrid": "test_answer[fees-12]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.23684210526315788,
+        "passed_b": 10,
+        "passed_s": 8,
+        "q": 0.3947368421052631
+      }
+    ],
+    "direction": "regression",
+    "scopes": [
+      {
+        "rate_b": 0.8600000000000001,
+        "rate_s": 0.6900000000000001,
+        "scope": "fees",
+        "z": -4.753355063468434
+      },
+      {
+        "rate_b": 0.9100000000000001,
+        "rate_s": 0.9,
+        "scope": "eligibility",
+        "z": -0.2958719197998435
+      },
+      {
+        "rate_b": 0.6081967213114753,
+        "rate_s": 0.601639344262295,
+        "scope": "flaky cases",
+        "z": -0.23324767498487659
+      }
+    ]
+  }
+}

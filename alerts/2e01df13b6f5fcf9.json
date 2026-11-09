@@ -1,0 +1,157 @@
+{
+  "cases": [
+    "e0e80305fdebc060",
+    "e1b6411345be5d72"
+  ],
+  "closed_by": null,
+  "id": "2e01df13b6f5fcf9",
+  "open": true,
+  "reference": "sha256:f9590a07e223ed3aa04cef2a003ddd2f0f01d0492ba154ef4d608a7a660d3d49",
+  "scopes": [
+    "flaky cases",
+    "overall",
+    "taxes"
+  ],
+  "state": "sha256:2e01df13b6f5fcf9081e0b648303106855615fc8367289affc1dcb946a08c523",
+  "still_regressed_at": [
+    "sha256:8da949235a306e821fb5b2ac4bddaed833c7f65f95a2b8f7eaa7ba76bed526dc"
+  ],
+  "suspect_range": [
+    "sha256:2e01df13b6f5fcf9081e0b648303106855615fc8367289affc1dcb946a08c523"
+  ],
+  "where": {
+    "cases": [
+      {
+        "case_key": "e0e80305fdebc060",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-02]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.00035722791140747797,
+        "passed_b": 10,
+        "passed_s": 2,
+        "q": 0.00357227911407478
+      },
+      {
+        "case_key": "e1b6411345be5d72",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-01]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.00035722791140747797,
+        "passed_b": 10,
+        "passed_s": 2,
+        "q": 0.00357227911407478
+      },
+      {
+        "case_key": "13c7b67f9ee905b9",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-20]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.0015479876160990713,
+        "passed_b": 10,
+        "passed_s": 3,
+        "q": 0.010319917440660476
+      },
+      {
+        "case_key": "1e4bf17204166862",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-11]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.005417956656346749,
+        "passed_b": 10,
+        "passed_s": 4,
+        "q": 0.015479876160990712
+      },
+      {
+        "case_key": "2162e31768ccc9eb",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-07]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.005417956656346749,
+        "passed_b": 10,
+        "passed_s": 4,
+        "q": 0.015479876160990712
+      },
+      {
+        "case_key": "3e767729d7be9ca1",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-04]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.005417956656346749,
+        "passed_b": 10,
+        "passed_s": 4,
+        "q": 0.015479876160990712
+      },
+      {
+        "case_key": "510e68885d0b7aaf",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-08]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.005417956656346749,
+        "passed_b": 10,
+        "passed_s": 4,
+        "q": 0.015479876160990712
+      },
+      {
+        "case_key": "52f10d0b129a6f62",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-18]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.009883305548940223,
+        "passed_b": 9,
+        "passed_s": 3,
+        "q": 0.024708263872350558
+      },
+      {
+        "case_key": "067c4a72828ad34e",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-16]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.016253869969040248,
+        "passed_b": 10,
+        "passed_s": 5,
+        "q": 0.027089783281733743
+      },
+      {
+        "case_key": "44c57c9508dbc709",
+        "family": "taxes",
+        "hrid": "test_answer[taxes-13]",
+        "judged_b": 10,
+        "judged_s": 10,
+        "p": 0.016253869969040248,
+        "passed_b": 10,
+        "passed_s": 5,
+        "q": 0.027089783281733743
+      }
+    ],
+    "direction": "regression",
+    "scopes": [
+      {
+        "rate_b": 0.9100000000000001,
+        "rate_s": 0.40499999999999997,
+        "scope": "taxes",
+        "z": -10.975712467513972
+      },
+      {
+        "rate_b": 0.7295454545454544,
+        "rate_s": 0.4954545454545455,
+        "scope": "flaky cases",
+        "z": -7.757435829633886
+      },
+      {
+        "rate_b": 0.8949999999999999,
+        "rate_s": 0.835,
+        "scope": "housing",
+        "z": -1.9926820212259464
+      }
+    ]
+  }
+}
