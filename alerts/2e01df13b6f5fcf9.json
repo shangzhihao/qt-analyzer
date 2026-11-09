@@ -3,9 +3,9 @@
     "e0e80305fdebc060",
     "e1b6411345be5d72"
   ],
-  "closed_by": null,
+  "closed_by": "sha256:a11398dc9e474e4a50ca2f95cddc44ac4da5cde86db8f8ab191260a5b08696aa",
   "id": "2e01df13b6f5fcf9",
-  "open": true,
+  "open": false,
   "reference": "sha256:f9590a07e223ed3aa04cef2a003ddd2f0f01d0492ba154ef4d608a7a660d3d49",
   "scopes": [
     "flaky cases",
@@ -14,7 +14,9 @@
   ],
   "state": "sha256:2e01df13b6f5fcf9081e0b648303106855615fc8367289affc1dcb946a08c523",
   "still_regressed_at": [
-    "sha256:8da949235a306e821fb5b2ac4bddaed833c7f65f95a2b8f7eaa7ba76bed526dc"
+    "sha256:8da949235a306e821fb5b2ac4bddaed833c7f65f95a2b8f7eaa7ba76bed526dc",
+    "sha256:1182acb9e47920e979dab9f3b19a916f1095cf99324376ef29a8a9002fb0f8a3",
+    "sha256:59395d09cc4761b5af57be9ab46fbb562b020c991be458b4de2d73a5111e28b1"
   ],
   "suspect_range": [
     "sha256:2e01df13b6f5fcf9081e0b648303106855615fc8367289affc1dcb946a08c523"
