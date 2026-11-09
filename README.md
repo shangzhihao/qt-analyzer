@@ -111,6 +111,7 @@ shows a regression or an improvement, overall or per family. Registered gates:
 | `bayes` | Posterior predictive check: are the new passes surprising under the baseline's Beta posteriors, shifted by `delta`? Per scope, both directions. |
 | `zscore_split` | `zscore`'s statistic with the regression budget split between the total (50 %), the flaky cases (20 %) and the topics (rest), and a separate, stricter budget for improvements. |
 | `likelihood_ratio` | For 1-run comparisons: `zscore_strata`'s scopes, but each case weighted by its likelihood ratio for a drop of `delta` in its own pass rate, so a case that nearly always passes counts more when it fails. Flaky cases keep the plain count. |
+| `ci_gate` | The PR check without re-runs. `likelihood_ratio`'s weights tested against a margin (drops under `margin` points pass), blocked at `alpha` and warned at `warn_alpha`; reliable cases without a margin (a few breaking is never forgiven); reliable and flaky cases chosen by the baseline alone; new cases (no baseline) tested together against `new_case_rate`. Only reports. |
 
 `gate = "<name>"` in `analyzer.toml` (`[analysis]`) selects the gate that makes
 the decisions — `zscore_strata` in this repository's configuration;

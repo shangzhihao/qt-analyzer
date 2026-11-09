@@ -140,6 +140,8 @@ class Comparison:
     families: dict[str, ScopeTest]
     cases: list[CaseResult]
     coverage: Coverage
+    # (passed, judged) of the cases without a baseline: added, or edited (new definition)
+    new_runs: tuple[int, int] = (0, 0)
 
     def flagged_scopes(self, alpha_per_state: float) -> list[str]:
         """Scopes with a significant drop, Bonferroni-split over overall + families."""
@@ -205,11 +207,13 @@ def compare(new: Counts, base: Counts) -> Comparison:
         removed=sorted(base_keys - new_keys),
         edited=sorted((new_keys & base_keys) - common_keys),
     )
+    unmatched = [new[cid] for cid in new if cid not in base]
     return Comparison(
         scope_test(pairs.values()),
         {family: scope_test(ps) for family, ps in sorted(by_family.items())},
         cases,
         coverage,
+        (sum(c.passed for c in unmatched), sum(c.judged for c in unmatched)),
     )
 
 

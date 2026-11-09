@@ -15,10 +15,14 @@
   tested with a likelihood ratio against a drop of `delta` in every case's own
   pass rate, so a failure counts by how surprising it is for that case. Meant
   for 1-run comparisons, where a plain count wastes the evidence.
+- `ci_gate`: the PR check without re-runs: `likelihood_ratio` tested against a
+  margin (drops smaller than `margin` points pass), with a strict block level and
+  a looser warn level.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass
 from statistics import NormalDist
@@ -245,6 +249,73 @@ def _lr_z(cases: list[CaseResult], delta: float, gain: bool, cap: float) -> floa
     return math.copysign(max(abs(total) - correction, 0.0), total) / math.sqrt(var)
 
 
+def _margin_z(
+    cases: list[CaseResult], delta: float, cap: float, margin: float, weighted: bool
+) -> float:
+    """Did the scope drop by more than `margin` points? Negative = yes.
+
+    Each case's new passes minus those expected after a drop of exactly `margin`
+    (or of its whole rate, if lower), weighted like likelihood_ratio (or all 1
+    without `weighted`). The variance is that of this boundary, not of
+    "unchanged": the new run at the lowered rate, plus the baseline's own
+    sampling error, with the baseline rate smoothed so a case that always passed
+    still varies."""
+    total = var = largest = 0.0
+    for c in cases:
+        n, n_b = c.judged_s, c.judged_b
+        if not n or not n_b:
+            continue
+        raw = c.passed_b / n_b
+        p = (c.passed_b + 0.5) / (n_b + 1)
+        q = max(p - min(margin, raw), 0.0)
+        w = _lr_weight(c, delta, False, cap) if weighted else 1.0
+        total += w * (c.passed_s - n * (raw - min(margin, raw)))
+        var += w * w * (n * q * (1 - q) + n * n * p * (1 - p) / n_b)
+        largest = max(largest, w)
+    if var <= 0:
+        return 0.0
+    correction = 0.5 * largest
+    return math.copysign(max(abs(total) - correction, 0.0), total) / math.sqrt(var)
+
+
+def _baseline_rate(c: CaseResult) -> float:
+    return (c.passed_b + 0.5) / (c.judged_b + 1)
+
+
+def _lr_scopes(
+    cases: list[CaseResult],
+    shares: tuple[float, float, float],
+    by_baseline: bool = False,
+) -> list[tuple[str, str, list[CaseResult], float]]:
+    """(scope, kind, cases, share of the budget): zscore_strata's scopes.
+
+    Reliable and flaky cases are chosen by the rate over both sides, or with
+    `by_baseline` by the baseline's smoothed rate alone. With one new run against
+    a short baseline the first lets the new run decide membership: a case that
+    passed 10/10 and fails once (10/11) becomes "flaky", so the flaky cases fill
+    with reliable cases that just failed."""
+    from qt_det.gates import _flaky
+
+    def reliable(c: CaseResult) -> bool:
+        return _baseline_rate(c) >= 0.95 if by_baseline else _reliable(c)
+
+    def flaky(c: CaseResult) -> bool:
+        return 0.05 < _baseline_rate(c) < 0.95 if by_baseline else _flaky(c)
+
+    total, reliable_share, flaky_share = shares
+    topics = sorted({c.family for c in cases})
+    topic_share = (1 - total - reliable_share - flaky_share) / max(len(topics), 1)
+    scopes = [("overall", "overall", cases, total)]
+    for name, keep, share in (("reliable cases", reliable, reliable_share),
+                              ("flaky cases", flaky, flaky_share)):  # fmt: skip
+        selected = [c for c in cases if keep(c)]
+        if selected:
+            scopes.append((name, name, selected, share))
+    return scopes + [
+        (t, "topics", [c for c in cases if c.family == t], topic_share) for t in topics
+    ]
+
+
 @register_gate("likelihood_ratio")
 @dataclass(frozen=True)
 class LikelihoodRatioGate:
@@ -271,25 +342,14 @@ class LikelihoodRatioGate:
                                    self.delta, self.cap, self.shares, self.dispersion)  # fmt: skip
 
     def judge(self, comparison: Comparison) -> Verdict:
-        from qt_det.gates import _flaky
         from qt_det.stats import Pair, scope_test, z_threshold
 
         verdict = Verdict()
         cases = _cases(comparison)
         if not cases:
             return verdict
-        total, reliable_share, flaky_share = self.shares
-        topics = sorted({c.family for c in cases})
-        topic_share = (1 - total - reliable_share - flaky_share) / max(len(topics), 1)
-        scopes = [("overall", "overall", cases, total)]
-        for name, keep, share in (("reliable cases", _reliable, reliable_share),
-                                  ("flaky cases", _flaky, flaky_share)):  # fmt: skip
-            selected = [c for c in cases if keep(c)]
-            if selected:
-                scopes.append((name, name, selected, share))
-        scopes += [(t, "topics", [c for c in cases if c.family == t], topic_share) for t in topics]
         phi = self.dispersion or {}
-        for scope, kind, selected, share in scopes:
+        for scope, kind, selected, share in _lr_scopes(cases, tuple(self.shares)):
             scale = math.sqrt(max(phi.get(kind, 1.0), 1.0))
             if kind == "flaky cases":
                 # A drop over flaky cases is a few points off each, not a share of
@@ -309,3 +369,97 @@ class LikelihoodRatioGate:
             elif gain >= gain_cut:
                 verdict.improved.append(scope)
         return verdict
+
+
+@register_gate("ci_gate")
+@dataclass(frozen=True)
+class CIGate:
+    """The PR check, one run per case, no re-runs: likelihood_ratio's weights and
+    scopes, tested against a margin, with two levels.
+
+    - A scope is **blocked** when it dropped by more than `margin` points at level
+      `alpha` (strict: a false block costs a developer time), and **warned** when
+      it did so at the looser `warn_alpha`. Drops within the margin pass.
+    - The reliable cases are tested without a margin: a few of them breaking
+      hardly moves an average, and is exactly what the check must not forgive.
+    - Reliable and flaky cases are chosen by the baseline alone, so the new run
+      cannot move a case between them.
+    - **New cases** (added, or edited so they have no baseline) are not compared;
+      their passes together are tested against `new_case_rate`, the least a
+      sensible new case should pass: "new cases" is blocked or warned when they
+      pass less often at the same levels.
+    - Improvements use `improvement_alpha` without a margin.
+
+    `regressed` holds the blocked scopes, `warned` the warned ones. The gate only
+    reports; whether a block stops the merge is CI's choice.
+    """
+
+    alpha: float = 0.01
+    warn_alpha: float = 0.05
+    improvement_alpha: float = 0.002
+    margin: float = 0.03
+    new_case_rate: float = 0.5
+    delta: float = 0.2
+    cap: float = 0.95
+    shares: tuple[float, float, float] = (0.3, 0.2, 0.3)  # total, reliable, flaky
+    dispersion: dict[str, float] | None = None
+
+    def tuned(self, level: float) -> CIGate:
+        """Block at `level`, warn at the same ratio; improvements are only
+        reported, so their level stays."""
+        warn = min(level * self.warn_alpha / self.alpha, 0.99)
+        return dataclasses.replace(self, alpha=level, warn_alpha=warn)
+
+    def _level(self, verdict: Verdict, scope: str, p: float) -> None:
+        if p <= self.alpha:
+            verdict.regressed.append(scope)
+        elif p <= self.warn_alpha:
+            verdict.warned.append(scope)
+
+    def judge(self, comparison: Comparison) -> Verdict:
+        from qt_det.stats import Pair, scope_test, z_threshold
+
+        verdict = Verdict()
+        passed, judged = comparison.new_runs
+        if judged:
+            p = _binomial_below(passed, judged, self.new_case_rate)
+            verdict.detail["new cases"] = (
+                f"{passed}/{judged} passed; P(this few | {self.new_case_rate:.0%}) = {p:.3f}"
+            )
+            self._level(verdict, "new cases", p)
+        cases = _cases(comparison)
+        if not cases:
+            return verdict
+        phi = self.dispersion or {}
+        for scope, kind, selected, share in _lr_scopes(cases, tuple(self.shares), True):
+            scale = math.sqrt(max(phi.get(kind, 1.0), 1.0))
+            # Reliable and flaky cases weigh about the same within their group:
+            # the plain count, as in likelihood_ratio's flaky cases.
+            weighted = kind not in ("reliable cases", "flaky cases")
+            plain = scope_test([Pair(c.passed_s, c.judged_s, c.passed_b, c.judged_b)
+                                for c in selected]).z / scale  # fmt: skip
+            if kind == "reliable cases":
+                drop = plain
+            else:
+                drop = _margin_z(selected, self.delta, self.cap, self.margin, weighted) / scale
+            gain = _lr_z(selected, self.delta, True, self.cap) / scale if weighted else plain
+            block_cut = z_threshold(self.alpha * share)
+            warn_cut = z_threshold(self.warn_alpha * share)
+            gain_cut = -z_threshold(self.improvement_alpha * share)
+            margin = 0 if kind == "reliable cases" else self.margin
+            verdict.detail[scope] = (
+                f"drop beyond {margin * 100:.0f} pts: z = {drop:+.2f} "
+                f"(warn at {warn_cut:.2f}, block at {block_cut:.2f}), gain z = {gain:+.2f}"
+            )
+            if drop <= block_cut:
+                verdict.regressed.append(scope)
+            elif drop <= warn_cut:
+                verdict.warned.append(scope)
+            elif gain >= gain_cut:
+                verdict.improved.append(scope)
+        return verdict
+
+
+def _binomial_below(passed: int, n: int, rate: float) -> float:
+    """P(at most `passed` passes in `n` runs at pass rate `rate`)."""
+    return sum(math.comb(n, k) * rate**k * (1 - rate) ** (n - k) for k in range(passed + 1))

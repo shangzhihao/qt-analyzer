@@ -165,6 +165,7 @@ def test_candidate_gates_are_registered():
         "zscore_split_hc",
         "zscore_strata",
         "likelihood_ratio",
+        "ci_gate",
     } <= set(available_gates())
 
 
@@ -241,3 +242,34 @@ def test_likelihood_ratio_weighs_failures_by_surprise():
     assert table["unchanged"]["likelihood_ratio"] <= 0.15
     for scenario in ("one topic -15 pts", "five cases collapse to 0%"):
         assert table[scenario]["likelihood_ratio"] > table[scenario]["zscore_strata"]
+
+
+def _ci_comparison(new_rows, base_rows):
+    from qt_det.analyse import compare
+    from qt_det.gate_compare import _counts
+
+    return compare(_counts(new_rows), _counts(base_rows))
+
+
+def test_ci_gate_blocks_new_cases_that_all_fail():
+    base = [(f"c{i}", "t", 10, 10) for i in range(20)]
+    new = [(f"c{i}", "t", 1, 1) for i in range(20)]
+    gate = make_gate("ci_gate")
+    failing = gate.judge(_ci_comparison(new + [(f"n{i}", "t", 0, 1) for i in range(8)], base))
+    passing = gate.judge(_ci_comparison(new + [(f"n{i}", "t", 1, 1) for i in range(8)], base))
+    assert "new cases" in failing.regressed
+    assert "new cases" not in passing.regressed + passing.warned
+
+
+def test_ci_gate_forgives_drift_within_the_margin_but_not_reliable_cases_breaking():
+    flaky_base = [(f"f{i}", f"t{i % 4}", 30, 60) for i in range(160)]
+    reliable_base = [(f"r{i}", f"t{i % 4}", 40, 40) for i in range(40)]
+    base = flaky_base + reliable_base
+    # Flaky cases 50% -> 48%: within the 3-point margin.
+    drift = [(f"f{i}", f"t{i % 4}", int(i % 25 < 12), 1) for i in range(160)]
+    drift += [(f"r{i}", f"t{i % 4}", 1, 1) for i in range(40)]
+    # Six reliable cases fail.
+    broken = drift[:160] + [(f"r{i}", f"t{i % 4}", int(i >= 6), 1) for i in range(40)]
+    gate = make_gate("ci_gate")
+    assert not gate.judge(_ci_comparison(drift, base)).regressed
+    assert "reliable cases" in gate.judge(_ci_comparison(broken, base)).regressed
