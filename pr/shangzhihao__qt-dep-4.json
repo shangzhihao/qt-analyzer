@@ -1,0 +1,90 @@
+{
+  "baseline": "sha256:86bb9b0cc38809ff92611cc0b59620286f5447862ccd1f2418c68661d8334fc3",
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.8272727272727274,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 0.9909090909090909,
+        "rate_s": 1.0,
+        "z": 0.0
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.8363636363636363,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.8954545454545453,
+        "rate_s": 0.9,
+        "z": 0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.6863636363636363,
+        "rate_s": 0.55,
+        "z": -1.1204125893907197
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.9227272727272726,
+        "rate_s": 0.75,
+        "z": -1.9801333364960632
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.8772727272727273,
+        "rate_s": 0.85,
+        "z": -0.030463589792247097
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.9727272727272727,
+        "rate_s": 0.95,
+        "z": -0.0
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.7318181818181817,
+        "rate_s": 0.8,
+        "z": 0.6324734098772206
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 0.4590909090909089,
+        "rate_s": 0.4,
+        "z": -0.30686017158837375
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.8199999999999997,
+      "rate_s": 0.79,
+      "z": -1.1154628988148738
+    }
+  },
+  "flagged": [],
+  "head_sha": "753f4e485ca27cdb1991e53080e7c84c58a456e8",
+  "improved": [],
+  "location": null,
+  "nearest_baseline": false,
+  "number": 4,
+  "reason": "",
+  "repo": "shangzhihao/qt-dep",
+  "run_id": "graph-42581557916",
+  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42581557916",
+  "status": "ok",
+  "suspected_cases": []
+}
