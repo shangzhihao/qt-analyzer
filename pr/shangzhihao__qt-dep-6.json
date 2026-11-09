@@ -9,70 +9,70 @@
     "families": {
       "benefits": {
         "cases": 20,
-        "rate_b": 0.8333333333333333,
+        "rate_b": 0.834090909090909,
         "rate_s": 0.85,
         "z": 0.0
       },
       "deadlines": {
         "cases": 20,
-        "rate_b": 0.9958333333333332,
+        "rate_b": 0.9886363636363636,
         "rate_s": 1.0,
         "z": 0.0
       },
       "documents": {
         "cases": 20,
-        "rate_b": 0.8375,
+        "rate_b": 0.840909090909091,
         "rate_s": 0.8,
-        "z": -0.19095244150806534
+        "z": -0.2911479150267049
       },
       "eligibility": {
         "cases": 20,
-        "rate_b": 0.9,
+        "rate_b": 0.9045454545454545,
         "rate_s": 0.9,
-        "z": 0.0
+        "z": -0.0
       },
       "fees": {
         "cases": 20,
-        "rate_b": 0.6833333333333335,
+        "rate_b": 0.690909090909091,
         "rate_s": 0.9,
-        "z": 2.0446800590141825
+        "z": 2.014974250605575
       },
       "forms": {
         "cases": 20,
-        "rate_b": 0.9125,
+        "rate_b": 0.8977272727272727,
         "rate_s": 0.9,
-        "z": -0.0
+        "z": 0.0
       },
       "housing": {
         "cases": 20,
-        "rate_b": 0.6125,
+        "rate_b": 0.6204545454545455,
         "rate_s": 0.35,
-        "z": -2.1956882767248658
+        "z": -2.340510703142194
       },
       "income": {
         "cases": 20,
-        "rate_b": 0.9625,
+        "rate_b": 0.975,
         "rate_s": 1.0,
-        "z": 0.18531232916527535
+        "z": 0.0
       },
       "residence": {
         "cases": 20,
-        "rate_b": 0.7166666666666667,
+        "rate_b": 0.7249999999999999,
         "rate_s": 0.7,
-        "z": -0.0
+        "z": -9.694817308507665e-17
       },
       "taxes": {
         "cases": 20,
-        "rate_b": 0.9208333333333332,
+        "rate_b": 0.9045454545454545,
         "rate_s": 0.85,
-        "z": -0.6213730705882584
+        "z": -0.4573438378951433
       }
     },
     "overall": {
       "cases": 200,
-      "rate_b": 0.8374999999999999,
+      "rate_b": 0.8381818181818181,
       "rate_s": 0.825,
-      "z": -0.42177590048384345
+      "z": -0.5037533883720768
     }
   },
   "flagged": [
@@ -86,132 +86,132 @@
         "case_key": "ed6b8ec78502c67a",
         "family": "housing",
         "hrid": "test_answer[housing-04]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.15384615384615385,
-        "passed_b": 11,
+        "p": 0.21739130434782608,
+        "passed_b": 18,
         "passed_s": 0,
-        "q": 0.979020979020979
-      },
-      {
-        "case_key": "a4e3cfb5823ce5ed",
-        "family": "housing",
-        "hrid": "test_answer[housing-03]",
-        "judged_b": 12,
-        "judged_s": 1,
-        "p": 0.23076923076923078,
-        "passed_b": 10,
-        "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
       },
       {
         "case_key": "88f1498e2e515efb",
         "family": "housing",
         "hrid": "test_answer[housing-05]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.3076923076923077,
-        "passed_b": 9,
+        "p": 0.2608695652173913,
+        "passed_b": 17,
         "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
+      },
+      {
+        "case_key": "a4e3cfb5823ce5ed",
+        "family": "housing",
+        "hrid": "test_answer[housing-03]",
+        "judged_b": 22,
+        "judged_s": 1,
+        "p": 0.2608695652173913,
+        "passed_b": 17,
+        "passed_s": 0,
+        "q": 0.9486166007905138
       },
       {
         "case_key": "a8d284ca6d5d8b98",
         "family": "housing",
         "hrid": "test_answer[housing-02]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.3076923076923077,
-        "passed_b": 9,
+        "p": 0.30434782608695654,
+        "passed_b": 16,
         "passed_s": 0,
-        "q": 0.979020979020979
-      },
-      {
-        "case_key": "cb506daa45167b3c",
-        "family": "housing",
-        "hrid": "test_answer[housing-15]",
-        "judged_b": 12,
-        "judged_s": 1,
-        "p": 0.3076923076923077,
-        "passed_b": 9,
-        "passed_s": 0,
-        "q": 0.979020979020979
-      },
-      {
-        "case_key": "b898f2455dd4a0fd",
-        "family": "housing",
-        "hrid": "test_answer[housing-07]",
-        "judged_b": 12,
-        "judged_s": 1,
-        "p": 0.38461538461538464,
-        "passed_b": 8,
-        "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
       },
       {
         "case_key": "d9017cdb751b4333",
         "family": "housing",
         "hrid": "test_answer[housing-11]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.38461538461538464,
-        "passed_b": 8,
+        "p": 0.30434782608695654,
+        "passed_b": 16,
         "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
       },
       {
-        "case_key": "ec4be896cb3b193a",
+        "case_key": "b898f2455dd4a0fd",
         "family": "housing",
-        "hrid": "test_answer[housing-20]",
-        "judged_b": 12,
+        "hrid": "test_answer[housing-07]",
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.46153846153846156,
-        "passed_b": 7,
+        "p": 0.391304347826087,
+        "passed_b": 14,
         "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
+      },
+      {
+        "case_key": "c80668025765f80f",
+        "family": "housing",
+        "hrid": "test_answer[housing-13]",
+        "judged_b": 22,
+        "judged_s": 1,
+        "p": 0.391304347826087,
+        "passed_b": 14,
+        "passed_s": 0,
+        "q": 0.9486166007905138
+      },
+      {
+        "case_key": "cb506daa45167b3c",
+        "family": "housing",
+        "hrid": "test_answer[housing-15]",
+        "judged_b": 22,
+        "judged_s": 1,
+        "p": 0.391304347826087,
+        "passed_b": 14,
+        "passed_s": 0,
+        "q": 0.9486166007905138
       },
       {
         "case_key": "09a7fcccffe6468f",
         "family": "housing",
         "hrid": "test_answer[housing-10]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.5384615384615384,
-        "passed_b": 6,
+        "p": 0.43478260869565216,
+        "passed_b": 13,
         "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
       },
       {
         "case_key": "be064fb38bebb3f8",
         "family": "housing",
         "hrid": "test_answer[housing-19]",
-        "judged_b": 12,
+        "judged_b": 22,
         "judged_s": 1,
-        "p": 0.5384615384615384,
-        "passed_b": 6,
+        "p": 0.5217391304347826,
+        "passed_b": 11,
         "passed_s": 0,
-        "q": 0.979020979020979
+        "q": 0.9486166007905138
       }
     ],
     "direction": "regression",
     "scopes": [
       {
-        "rate_b": 0.6125,
+        "rate_b": 0.6204545454545455,
         "rate_s": 0.35,
         "scope": "housing",
-        "z": -2.1956882767248658
+        "z": -2.340510703142194
       },
       {
-        "rate_b": 0.9208333333333332,
+        "rate_b": 0.9045454545454545,
         "rate_s": 0.85,
         "scope": "taxes",
-        "z": -0.6213730705882584
+        "z": -0.4573438378951433
       },
       {
-        "rate_b": 0.6739130434782608,
-        "rate_s": 0.6376811594202898,
+        "rate_b": 0.6666666666666665,
+        "rate_s": 0.6349206349206349,
         "scope": "flaky cases",
-        "z": -0.5412365142015901
+        "z": -0.43288941155626326
       }
     ]
   },

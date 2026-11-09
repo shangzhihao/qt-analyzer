@@ -1,8 +1,8 @@
 {
   "cases": [],
-  "closed_by": null,
+  "closed_by": "sha256:50f2ff1bc94a6f0d9b3ecbe42d4b0a884c9adae6026063958fac2ffb5e549703",
   "id": "86bb9b0cc38809ff",
-  "open": true,
+  "open": false,
   "reference": "sha256:f9590a07e223ed3aa04cef2a003ddd2f0f01d0492ba154ef4d608a7a660d3d49",
   "scopes": [
     "fees",
@@ -15,7 +15,8 @@
     "sha256:1182acb9e47920e979dab9f3b19a916f1095cf99324376ef29a8a9002fb0f8a3",
     "sha256:59395d09cc4761b5af57be9ab46fbb562b020c991be458b4de2d73a5111e28b1",
     "sha256:a11398dc9e474e4a50ca2f95cddc44ac4da5cde86db8f8ab191260a5b08696aa",
-    "sha256:fce4b726038aece675d2c351197c6afce1c722e3fb829076d1956c5060245252"
+    "sha256:fce4b726038aece675d2c351197c6afce1c722e3fb829076d1956c5060245252",
+    "sha256:a306fa823a6f9949e7f2b01bd2f7dc271dd4a18554ff8b101b953ca6593c4b4f"
   ],
   "suspect_range": [
     "sha256:86bb9b0cc38809ff92611cc0b59620286f5447862ccd1f2418c68661d8334fc3"
