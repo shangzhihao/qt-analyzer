@@ -1,0 +1,226 @@
+{
+  "baseline": "sha256:fce4b726038aece675d2c351197c6afce1c722e3fb829076d1956c5060245252",
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.8266666666666665,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 0.9866666666666667,
+        "rate_s": 0.95,
+        "z": -0.2010820363186959
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.8400000000000001,
+        "rate_s": 0.8,
+        "z": -0.22840928511493913
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.8966666666666667,
+        "rate_s": 0.9,
+        "z": 0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.6966666666666668,
+        "rate_s": 0.7,
+        "z": 0.0
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.9166666666666666,
+        "rate_s": 0.95,
+        "z": 0.11978935593748868
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.86,
+        "rate_s": 0.5,
+        "z": -4.281012325637252
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.9700000000000001,
+        "rate_s": 1.0,
+        "z": 0.08188588409026934
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.74,
+        "rate_s": 0.7,
+        "z": -0.23620079662552074
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 0.5399999999999999,
+        "rate_s": 0.85,
+        "z": 2.5607356578988303
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.8273333333333333,
+      "rate_s": 0.82,
+      "z": -0.20475784595482296
+    }
+  },
+  "flagged": [
+    "housing"
+  ],
+  "head_sha": "eef3a4e3cd7675bc54e4421026edc8de77d6a4bc",
+  "improved": [],
+  "location": {
+    "cases": [
+      {
+        "case_key": "30ea5ce1d999eab9",
+        "family": "housing",
+        "hrid": "test_answer[housing-06]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.0625,
+        "passed_b": 15,
+        "passed_s": 0,
+        "q": 0.5
+      },
+      {
+        "case_key": "ec4be896cb3b193a",
+        "family": "housing",
+        "hrid": "test_answer[housing-20]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.0625,
+        "passed_b": 15,
+        "passed_s": 0,
+        "q": 0.5
+      },
+      {
+        "case_key": "09a7fcccffe6468f",
+        "family": "housing",
+        "hrid": "test_answer[housing-10]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.125,
+        "passed_b": 14,
+        "passed_s": 0,
+        "q": 0.5
+      },
+      {
+        "case_key": "405cb30a32efda0e",
+        "family": "housing",
+        "hrid": "test_answer[housing-14]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.125,
+        "passed_b": 14,
+        "passed_s": 0,
+        "q": 0.5
+      },
+      {
+        "case_key": "b898f2455dd4a0fd",
+        "family": "housing",
+        "hrid": "test_answer[housing-07]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.125,
+        "passed_b": 14,
+        "passed_s": 0,
+        "q": 0.5
+      },
+      {
+        "case_key": "a4e3cfb5823ce5ed",
+        "family": "housing",
+        "hrid": "test_answer[housing-03]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.1875,
+        "passed_b": 13,
+        "passed_s": 0,
+        "q": 0.625
+      },
+      {
+        "case_key": "117ebada713149af",
+        "family": "housing",
+        "hrid": "test_answer[housing-17]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.3125,
+        "passed_b": 11,
+        "passed_s": 0,
+        "q": 0.8928571428571429
+      },
+      {
+        "case_key": "c80668025765f80f",
+        "family": "housing",
+        "hrid": "test_answer[housing-13]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.5,
+        "passed_b": 8,
+        "passed_s": 0,
+        "q": 1.0
+      },
+      {
+        "case_key": "a7ae3ebb5a1806aa",
+        "family": "housing",
+        "hrid": "test_answer[housing-01]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.75,
+        "passed_b": 4,
+        "passed_s": 0,
+        "q": 1.0
+      },
+      {
+        "case_key": "65b6310decfed7f1",
+        "family": "housing",
+        "hrid": "test_answer[housing-18]",
+        "judged_b": 15,
+        "judged_s": 1,
+        "p": 0.8125,
+        "passed_b": 3,
+        "passed_s": 0,
+        "q": 1.0
+      }
+    ],
+    "direction": "regression",
+    "scopes": [
+      {
+        "rate_b": 0.86,
+        "rate_s": 0.5,
+        "scope": "housing",
+        "z": -4.281012325637252
+      },
+      {
+        "rate_b": 0.6682730923694775,
+        "rate_s": 0.6506024096385542,
+        "scope": "flaky cases",
+        "z": -0.24365510477224353
+      },
+      {
+        "rate_b": 0.74,
+        "rate_s": 0.7,
+        "scope": "residence",
+        "z": -0.23620079662552074
+      }
+    ]
+  },
+  "nearest_baseline": false,
+  "number": 6,
+  "reason": "",
+  "repo": "shangzhihao/qt-app",
+  "run_id": "graph-42591420280",
+  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42591420280",
+  "status": "regressed",
+  "suspected_cases": []
+}
