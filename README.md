@@ -25,6 +25,11 @@ uv run qt-analyzer status --results results/
   Verdicts are taken once and recorded in `decisions.jsonl`: a state or PR run
   that was decided keeps its verdict on every later pass, so a threshold change
   or late evidence never rewrites an alert that was already reported.
+  Each nightly state is compared with the previous one (step) and with the
+  reference. A drop in a step, or a scope below the reference that no open
+  alert covers, opens an alert holding only those scopes. Each alert stays open
+  while its own topics are still below the reference and closes on its own
+  once they are not; a step improvement is reported as `improved`.
 - `comment` creates or updates one comment per PR, found by its marker. CI runs
   it only after the results are pushed.
 - `status` prints the same summary without writing.
