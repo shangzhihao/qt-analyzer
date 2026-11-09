@@ -1,4 +1,4 @@
-"""The contract between the test producer (qt-graph) and the analyzer.
+"""The contract between the test producer (qt-app) and the analyzer.
 
 A run is a manifest plus one pytest report log per shard. This module is the
 only place that knows their format; everything else works on the dataclasses.

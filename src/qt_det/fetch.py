@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-DEFAULT_REPO = "shangzhihao/qt-analyzer"
+DEFAULT_REPO = "shangzhihao/qt-det"
 BRANCH = "qt-results"
 
 

@@ -14,10 +14,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from qt_analyzer.analyse import Analysis, Comparison, Config, Counts, analyse, pass_rate
-from qt_analyzer.gate_compare import build_gates
-from qt_analyzer.locators import location_from_json
-from qt_analyzer.stores.results import ResultStore
+from qt_det.analyse import Analysis, Comparison, Config, Counts, analyse, pass_rate
+from qt_det.gate_compare import build_gates
+from qt_det.locators import location_from_json
+from qt_det.stores.results import ResultStore
 
 FAILURES_PER_CASE = 3
 FAILURE_LENGTH = 300

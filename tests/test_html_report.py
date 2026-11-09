@@ -4,10 +4,10 @@ import re
 from synthetic import Case, make_cases
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.analyse import Config
-from qt_analyzer.cli import main
-from qt_analyzer.html_report.html import render
-from qt_analyzer.html_report.model import build_model, failure_samples
+from qt_det.analyse import Config
+from qt_det.cli import main
+from qt_det.html_report.html import render
+from qt_det.html_report.model import build_model, failure_samples
 
 
 def _history(tmp_path):

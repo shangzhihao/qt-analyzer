@@ -4,7 +4,7 @@ import json
 import pytest
 from synthetic import Case, manifest, report_entries
 
-from qt_analyzer.contract import ContractError, Manifest, parse_shard_log, state_key
+from qt_det.contract import ContractError, Manifest, parse_shard_log, state_key
 
 
 def _components():
@@ -44,7 +44,7 @@ def test_the_analyzer_computes_the_state_key():
 
 
 def _pr(baseline):
-    return {"component": "graph", "repo": "me/qt-graph", "number": 3, "head_sha": "h",
+    return {"component": "graph", "repo": "me/qt-app", "number": 3, "head_sha": "h",
             "merge_sha": "m", "baseline": baseline}  # fmt: skip
 
 

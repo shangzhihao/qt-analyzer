@@ -8,7 +8,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from qt_analyzer.stores.base import CaseCount, IndexEntry
+from qt_det.stores.base import CaseCount, IndexEntry
 
 _SCHEMA = pa.schema(
     [

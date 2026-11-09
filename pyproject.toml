@@ -1,5 +1,5 @@
 [project]
-name = "qt-analyzer"
+name = "qt-det"
 version = "0.1.0"
 description = "Analyse pytest report logs of a non-deterministic test suite, state by state."
 readme = "README.md"
@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-qt-analyzer = "qt_analyzer.cli:main"
+qt-det = "qt_det.cli:main"
 
 [dependency-groups]
 dev = [

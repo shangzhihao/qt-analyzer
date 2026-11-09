@@ -5,8 +5,8 @@ import dataclasses
 from synthetic import make_cases, manifest, write_run
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.analyse import Config
-from qt_analyzer.decisions import DecisionLog
+from qt_det.analyse import Config
+from qt_det.decisions import DecisionLog
 
 
 def _verdicts(analysis):

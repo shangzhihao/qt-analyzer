@@ -37,8 +37,8 @@ jobs:
           QT_PAT: ${{ secrets.QT_PAT }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          uv run qt-analyzer ingest --github shangzhihao/qt-graph --results results
-          uv run qt-analyzer analyse --results results | tee -a "$GITHUB_STEP_SUMMARY"
+          uv run qt-det ingest --github shangzhihao/qt-app --results results
+          uv run qt-det analyse --results results | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Publish results
         working-directory: results
         run: |
@@ -60,4 +60,4 @@ jobs:
         continue-on-error: true
         env:
           QT_PAT: ${{ secrets.QT_PAT }}
-        run: uv run qt-analyzer comment --results results
+        run: uv run qt-det comment --results results

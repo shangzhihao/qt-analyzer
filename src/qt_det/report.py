@@ -7,9 +7,9 @@ import urllib.request
 from collections.abc import Callable
 from typing import Any
 
-from qt_analyzer.analyse import PrResult
-from qt_analyzer.locators import format_location
-from qt_analyzer.stats import ScopeTest
+from qt_det.analyse import PrResult
+from qt_det.locators import format_location
+from qt_det.stats import ScopeTest
 
 MARKER = "<!-- qt-report -->"
 API = "https://api.github.com"

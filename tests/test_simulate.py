@@ -2,10 +2,10 @@ import random
 
 from synthetic import make_cases, manifest, write_run
 
-from qt_analyzer.cli import main
-from qt_analyzer.ingest import ingest_pending
-from qt_analyzer.simulate import population_from_results, sweep, synthetic_population
-from qt_analyzer.stores import LocalDirStore, ResultStore
+from qt_det.cli import main
+from qt_det.ingest import ingest_pending
+from qt_det.simulate import population_from_results, sweep, synthetic_population
+from qt_det.stores import LocalDirStore, ResultStore
 
 
 def test_large_family_drop_is_caught_and_no_change_stays_quiet():

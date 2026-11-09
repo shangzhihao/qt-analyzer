@@ -6,10 +6,10 @@ from urllib.parse import parse_qs, urlsplit
 from synthetic import make_cases, manifest, write_run
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.ingest import ingest_pending
-from qt_analyzer.report import MARKER, pr_comment, sync_pr_comments
-from qt_analyzer.stores import ResultStore
-from qt_analyzer.stores.github import GitHubArtifactsStore
+from qt_det.ingest import ingest_pending
+from qt_det.report import MARKER, pr_comment, sync_pr_comments
+from qt_det.stores import ResultStore
+from qt_det.stores.github import GitHubArtifactsStore
 
 
 def _artifact(artifact_id, name, created_at, url):
@@ -21,7 +21,7 @@ class FakeGitHub(GitHubArtifactsStore):
     """Artifacts served from a local run directory instead of the API."""
 
     def __init__(self, run_dirs, cache, stale=()):
-        super().__init__("me/qt-graph", "token", cache)
+        super().__init__("me/qt-app", "token", cache)
         self.blobs, self.listing = {}, []
         next_id = 1
         for run_dir in run_dirs:
@@ -58,7 +58,7 @@ def test_ingest_from_artifacts_uses_the_newest_artifact_and_caches(tmp_path):
     components = {"graph": ("g1", "2026-11-01T10:00:00Z")}
     run_dir = write_run(tmp_path / "logs", manifest("graph-1", "main", components, "graph", 2, 2),
                         make_cases(2, 5), random.Random(0))  # fmt: skip
-    store = FakeGitHub([run_dir], tmp_path / "cache", stale=["qt-graph-1-shard-1"])
+    store = FakeGitHub([run_dir], tmp_path / "cache", stale=["qt-app-1-shard-1"])
     results = ResultStore(tmp_path / "results")
 
     assert store.list_runs() == ["graph-1"]
@@ -107,18 +107,18 @@ def test_pr_comment_is_created_once_and_updated_on_a_new_result(tmp_path):
     analysis = s.analyse()
     api = FakeApi()
 
-    assert sync_pr_comments(analysis.prs, api) == ["me/qt-graph#5"]
+    assert sync_pr_comments(analysis.prs, api) == ["me/qt-app#5"]
     assert sync_pr_comments(analysis.prs, api) == []  # repeated pass: nothing written
-    assert api.writes() == [("POST", "https://api.github.com/repos/me/qt-graph/issues/5/comments")]
+    assert api.writes() == [("POST", "https://api.github.com/repos/me/qt-app/issues/5/comments")]
     (body,) = [b for _, b in api.comments.values()]
     assert MARKER in body and "Possible regression" in body and "family2" in body
 
     s.pr("graph", 5, "g1", "h2", cases, "2026-11-03T02:00:00Z")
     analysis = s.analyse()
-    assert sync_pr_comments(analysis.prs, api) == ["me/qt-graph#5"]
+    assert sync_pr_comments(analysis.prs, api) == ["me/qt-app#5"]
     assert api.writes()[-1] == (
         "PATCH",
-        "https://api.github.com/repos/me/qt-graph/issues/comments/1",
+        "https://api.github.com/repos/me/qt-app/issues/comments/1",
     )
     assert len(api.comments) == 1
     assert "No significant drop" in api.comments[1][1]
@@ -131,12 +131,12 @@ def test_an_existing_comment_is_found_by_its_marker(tmp_path):
     s.commit("graph", "g1")
     s.pr("graph", 8, "g1", "h1", cases, "2026-11-03T01:00:00Z")
     api = FakeApi()
-    api.comments[7] = ("https://api.github.com/repos/me/qt-graph/issues/8/comments",
+    api.comments[7] = ("https://api.github.com/repos/me/qt-app/issues/8/comments",
                        MARKER + "\nold report")  # fmt: skip
 
     sync_pr_comments(s.analyse().prs, api)
 
-    assert api.writes() == [("PATCH", "https://api.github.com/repos/me/qt-graph/issues/comments/7")]
+    assert api.writes() == [("PATCH", "https://api.github.com/repos/me/qt-app/issues/comments/7")]
     assert len(api.comments) == 1
 
 

@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from qt_analyzer.stats import (
+from qt_det.stats import (
     Pair,
     benjamini_hochberg,
     fisher_drop,

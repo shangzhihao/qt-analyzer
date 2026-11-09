@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from qt_analyzer.contract import Manifest
+from qt_det.contract import Manifest
 
 API = "https://api.github.com"
 _MANIFEST = "-manifest"

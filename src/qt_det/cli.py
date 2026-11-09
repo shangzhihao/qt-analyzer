@@ -1,4 +1,4 @@
-"""Command line: `qt-analyzer ingest|analyse|status|comment|simulate|gates|case|report`."""
+"""Command line: `qt-det ingest|analyse|status|comment|simulate|gates|case|report`."""
 
 from __future__ import annotations
 
@@ -8,22 +8,22 @@ import os
 import sys
 from pathlib import Path
 
-from qt_analyzer import case_check, gate_compare
-from qt_analyzer.analyse import Analysis, Config, analyse, pass_rate, save
-from qt_analyzer.fetch import DEFAULT_REPO, fetch_results
-from qt_analyzer.gates import available_gates
-from qt_analyzer.ingest import ingest_pending
-from qt_analyzer.locators import format_location, location_from_json
-from qt_analyzer.report import github_request, sync_pr_comments
-from qt_analyzer.simulate import (
+from qt_det import case_check, gate_compare
+from qt_det.analyse import Analysis, Config, analyse, pass_rate, save
+from qt_det.fetch import DEFAULT_REPO, fetch_results
+from qt_det.gates import available_gates
+from qt_det.ingest import ingest_pending
+from qt_det.locators import format_location, location_from_json
+from qt_det.report import github_request, sync_pr_comments
+from qt_det.simulate import (
     SimCase,
     format_table,
     population_from_results,
     sweep,
     synthetic_population,
 )
-from qt_analyzer.stores import LocalDirStore, ResultStore
-from qt_analyzer.stores.github import GitHubArtifactsStore
+from qt_det.stores import LocalDirStore, ResultStore
+from qt_det.stores.github import GitHubArtifactsStore
 
 
 def _short(key: str | None) -> str:
@@ -75,7 +75,7 @@ def print_status(analysis: Analysis, out=sys.stdout) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="qt-analyzer")
+    parser = argparse.ArgumentParser(prog="qt-det")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_ingest = sub.add_parser("ingest", help="ingest every run not yet complete")
@@ -167,8 +167,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "report":
-        from qt_analyzer.html_report.html import render
-        from qt_analyzer.html_report.model import build_model, failure_samples
+        from qt_det.html_report.html import render
+        from qt_det.html_report.model import build_model, failure_samples
 
         results_dir = args.results or fetch_results(args.cache, args.repo)
         failures = None
@@ -224,9 +224,9 @@ def main(argv: list[str] | None = None) -> int:
             rows = json.loads(args.population_json.read_text())
             population = [SimCase(f"case{i}", r["family"], r["p"]) for i, r in enumerate(rows)]
         if args.locate:
-            from qt_analyzer.analyse import stage_params
-            from qt_analyzer.gates import make_gate
-            from qt_analyzer.locators import make_locator
+            from qt_det.analyse import stage_params
+            from qt_det.gates import make_gate
+            from qt_det.locators import make_locator
 
             stage = "nightly" if args.runs > 1 else "pr"
             gate = make_gate(config.gate, stage_params(config, stage))

@@ -1,4 +1,4 @@
-# Thresholds and windows for `qt-analyzer analyse`. Every key is optional.
+# Thresholds and windows for `qt-det analyse`. Every key is optional.
 [analysis]
 # Earlier measured main states pooled into a baseline.
 pool_k = 5
@@ -27,7 +27,7 @@ locator = "ranked"
 # overrides them for "push", "nightly" or "pr".
 #
 # zscore_strata, tuned on the real vws-graph pass-rate distribution
-# (`qt-analyzer gates --benchmark --equal-false-alarms ...`, 2,000 draws):
+# (`qt-det gates --benchmark --equal-false-alarms ...`, 2,000 draws):
 # - nightly (10 vs 10 runs): about 3-4 % false regressions and false
 #   improvements per comparison, i.e. about 4 false issues per month at
 #   60 nightly states with a step and a drift test each.

@@ -18,11 +18,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol
 
-from qt_analyzer.gates import pooled_rate
-from qt_analyzer.stats import Pair, benjamini_hochberg, fisher_drop, scope_test
+from qt_det.gates import pooled_rate
+from qt_det.stats import Pair, benjamini_hochberg, fisher_drop, scope_test
 
 if TYPE_CHECKING:
-    from qt_analyzer.analyse import CaseResult, Comparison
+    from qt_det.analyse import CaseResult, Comparison
 
 STRATA = ("reliable cases", "flaky cases")
 

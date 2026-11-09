@@ -5,8 +5,8 @@ import dataclasses
 from synthetic import make_cases
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.decisions import DecisionLog
-from qt_analyzer.report import pr_comment
+from qt_det.decisions import DecisionLog
+from qt_det.report import pr_comment
 
 
 def edited(cases, definition="d2"):

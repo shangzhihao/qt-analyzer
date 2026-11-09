@@ -1,7 +1,7 @@
-# qt-analyzer
+# qt-det
 
 Analyses the pytest report logs of a non-deterministic test suite, state by
-state: which combination of component versions (e.g. `qt-graph` + `qt-data`)
+state: which combination of component versions (e.g. `qt-app` + `qt-dep`)
 was tested, how its pass rates compare with earlier states, and whether a drop
 is noise, suspected or confirmed.
 
@@ -13,9 +13,9 @@ It never imports the code under test. Its only input is the run contract: a
 
 ```sh
 uv sync
-uv run qt-analyzer ingest --logs runs/ --results results/
-uv run qt-analyzer analyse --results results/
-uv run qt-analyzer status --results results/
+uv run qt-det ingest --logs runs/ --results results/
+uv run qt-det analyse --results results/
+uv run qt-det status --results results/
 ```
 
 - `ingest` reads every run in `runs/<run_id>/` that is not yet complete and
@@ -39,7 +39,7 @@ uv run qt-analyzer status --results results/
   confirmed on time or late, and how often unchanged states raise false alarms.
 
 ```sh
-uv run qt-analyzer simulate --shifts 0,0.05,0.1,0.2 --push-runs 1 --nightly-runs 5,10,20
+uv run qt-det simulate --shifts 0,0.05,0.1,0.2 --push-runs 1 --nightly-runs 5,10,20
 ```
 
 Thresholds come from `analyzer.toml` (`[analysis]` table).
@@ -50,11 +50,11 @@ In CI every case runs once, too few to judge one case. Locally one case can run
 many times; `case` compares those runs with the same case's history on main:
 
 ```sh
-# in qt-graph, with your change: run the cases of interest 30 times
+# in qt-app, with your change: run the cases of interest 30 times
 uv run pytest tests/quality -k "taxes-03" --qt-runs 30 --report-log local.jsonl
-# in qt-analyzer
-uv run qt-analyzer case local.jsonl            # downloads the published results
-uv run qt-analyzer case local.jsonl --results path/to/qt-results
+# in qt-det
+uv run qt-det case local.jsonl            # downloads the published results
+uv run qt-det case local.jsonl --results path/to/qt-results
 ```
 
 ```
@@ -75,9 +75,9 @@ test_answer[taxes-03]
 One self-contained HTML file (no server, works offline, light and dark mode):
 
 ```sh
-uv run qt-analyzer report --fetch --out report.html                    # published results
-uv run qt-analyzer report --results path/to/qt-results --out report.html
-uv run qt-analyzer report --fetch --logs-github shangzhihao/qt-graph   # + failure messages
+uv run qt-det report --fetch --out report.html                    # published results
+uv run qt-det report --results path/to/qt-results --out report.html
+uv run qt-det report --fetch --logs-github shangzhihao/qt-app   # + failure messages
 ```
 
 Sections: overview tiles; pass rate over main states with each verdict; topics ×
@@ -132,11 +132,11 @@ chosen by their pass rate over both sides of a comparison, not by the
 baseline alone, which would bias the test.
 
 ```sh
-uv run qt-analyzer gates --list
-uv run qt-analyzer gates --example all          # two fixed examples, every gate
-uv run qt-analyzer gates --benchmark            # 7 scenarios, random trials
-uv run qt-analyzer gates --benchmark --gates zscore,poisson_binomial --runs 10
-uv run qt-analyzer gates --benchmark --equal-false-alarms 0.05   # fair: same false-alarm rate
+uv run qt-det gates --list
+uv run qt-det gates --example all          # two fixed examples, every gate
+uv run qt-det gates --benchmark            # 7 scenarios, random trials
+uv run qt-det gates --benchmark --gates zscore,poisson_binomial --runs 10
+uv run qt-det gates --benchmark --equal-false-alarms 0.05   # fair: same false-alarm rate
 ```
 
 A gate can implement `tuned(level)` (the same gate at another sensitivity) so
@@ -148,7 +148,7 @@ rate; gates without it are compared as configured.
 ```python
 # my_gates.py
 from dataclasses import dataclass
-from qt_analyzer.gates import Verdict, register_gate
+from qt_det.gates import Verdict, register_gate
 
 
 @register_gate("my_gate")
@@ -166,7 +166,7 @@ class MyGate:
 ```toml
 # analyzer.toml
 [analysis]
-gate_modules = ["my_gates"]   # importable from where qt-analyzer runs
+gate_modules = ["my_gates"]   # importable from where qt-det runs
 [gates.my_gate]
 threshold = 0.05
 ```
@@ -184,14 +184,14 @@ is recorded with the alert, shown in PR comments ("**Where:** …") and in
 `status`. Locators register like gates (`@register_locator("name")`).
 
 ```sh
-uv run qt-analyzer gates --locate --runs 1  --baseline-runs 40   # PR-like
-uv run qt-analyzer gates --locate --runs 10 --baseline-runs 10   # nightly-like
+uv run qt-det gates --locate --runs 1  --baseline-runs 40   # PR-like
+uv run qt-det gates --locate --runs 10 --baseline-runs 10   # nightly-like
 ```
 
 On the real suite's distribution, whenever the gate fires, `ranked` puts the
 right topic first in essentially every trial, and its top-10 cases are 98–99 %
 right for a topic drop. A few collapsed cases among 1,934 need the nightly's
-runs (98 % found in the top 10, vs 80 % from one run); `qt-analyzer case`
+runs (98 % found in the top 10, vs 80 % from one run); `qt-det case`
 confirms a single suspect locally.
 
 ## Contract

@@ -14,10 +14,10 @@ from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-from qt_analyzer.contract import Manifest, State, state_key
-from qt_analyzer.decisions import DecisionLog, alert_id, config_hash
-from qt_analyzer.locators import Location, make_locator
-from qt_analyzer.stats import (
+from qt_det.contract import Manifest, State, state_key
+from qt_det.decisions import DecisionLog, alert_id, config_hash
+from qt_det.locators import Location, make_locator
+from qt_det.stats import (
     Pair,
     ScopeTest,
     benjamini_hochberg,
@@ -25,8 +25,8 @@ from qt_analyzer.stats import (
     scope_test,
     z_threshold,
 )
-from qt_analyzer.stores.base import CaseCount
-from qt_analyzer.stores.results import ResultStore
+from qt_det.stores.base import CaseCount
+from qt_det.stores.results import ResultStore
 
 CaseId = tuple[str, str]  # (case_key, definition_hash)
 
@@ -60,7 +60,7 @@ class Config:
         data = tomllib.loads(path.read_text())
         analysis = data.get("analysis", {})
         known = {k: v for k, v in analysis.items() if k in cls.__dataclass_fields__}
-        from qt_analyzer.gates import load_gate_modules
+        from qt_det.gates import load_gate_modules
 
         load_gate_modules(analysis.get("gate_modules", []))
         return cls(
@@ -229,7 +229,7 @@ def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str]
         else:
             alpha = config.pr_alpha
         return comparison.flagged_scopes(alpha), comparison.improved_scopes(alpha)
-    from qt_analyzer.gates import make_gate
+    from qt_det.gates import make_gate
 
     verdict = make_gate(config.gate, stage_params(config, stage)).judge(comparison)
     return verdict.regressed, verdict.improved
@@ -383,7 +383,7 @@ _CHI2_MEDIAN = 0.4549
 
 
 def _gate_takes(config: Config, param: str) -> bool:
-    from qt_analyzer.gates import _REGISTRY
+    from qt_det.gates import _REGISTRY
 
     cls = _REGISTRY.get(config.gate)
     return cls is not None and param in getattr(cls, "__dataclass_fields__", {})
@@ -394,7 +394,7 @@ def estimate_dispersion(comparisons: list[Comparison], shares) -> dict[str, floa
     scope: phi = median(z^2) / median of chi-square(1), at least 1. The median keeps
     real changes (and outages) from inflating it; scopes that never fail tell
     nothing about the variance and are left out. Needs 5 comparisons per kind."""
-    from qt_analyzer.candidate_gates import strata_scopes
+    from qt_det.candidate_gates import strata_scopes
 
     zs: dict[str, list[float]] = defaultdict(list)
     for comparison in comparisons:

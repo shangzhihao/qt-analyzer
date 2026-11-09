@@ -20,11 +20,11 @@ from dataclasses import dataclass
 from statistics import NormalDist
 from typing import TYPE_CHECKING
 
-from qt_analyzer.gates import Verdict, ZScoreSplitGate, register_gate
-from qt_analyzer.stats import fisher_drop
+from qt_det.gates import Verdict, ZScoreSplitGate, register_gate
+from qt_det.stats import fisher_drop
 
 if TYPE_CHECKING:
-    from qt_analyzer.analyse import CaseResult, Comparison
+    from qt_det.analyse import CaseResult, Comparison
 
 _NORMAL = NormalDist()
 
@@ -130,7 +130,7 @@ class ZScoreSplitHCGate:
 
 
 def _reliable(c: CaseResult) -> bool:
-    from qt_analyzer.gates import pooled_rate
+    from qt_det.gates import pooled_rate
 
     return pooled_rate(c) >= 0.95
 
@@ -142,8 +142,8 @@ def strata_scopes(
     comparison: Comparison, shares: tuple[float, float, float]
 ) -> list[tuple[str, str, float, float]]:
     """(scope, kind, z, share of the budget) for zscore_strata's scopes."""
-    from qt_analyzer.gates import _flaky
-    from qt_analyzer.stats import Pair, scope_test
+    from qt_det.gates import _flaky
+    from qt_det.stats import Pair, scope_test
 
     total, reliable_share, flaky_share = shares
     topics = sorted((n, t) for n, t in comparison.families.items() if t.cases)
@@ -188,7 +188,7 @@ class ZScoreStrataGate:
                                 self.dispersion)  # fmt: skip
 
     def judge(self, comparison: Comparison) -> Verdict:
-        from qt_analyzer.stats import z_threshold
+        from qt_det.stats import z_threshold
 
         verdict = Verdict()
         if not comparison.overall.cases:
