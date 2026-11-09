@@ -52,6 +52,7 @@ class Verdict:
     regressed: list[str] = field(default_factory=list)
     improved: list[str] = field(default_factory=list)
     detail: dict[str, str] = field(default_factory=dict)  # scope -> human-readable evidence
+    warned: list[str] = field(default_factory=list)  # below a block, for gates with two levels
 
 
 class Gate(Protocol):
