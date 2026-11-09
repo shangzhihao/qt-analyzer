@@ -8,7 +8,7 @@ Adding a gate: write a class with `judge(comparison) -> Verdict` and decorate it
 with `@register_gate("name")`, in this module or in your own module listed in
 `analyzer.toml` as `gate_modules = ["my_gates"]`. Keyword arguments come from
 `[gates.<name>]` in `analyzer.toml`. Every registered gate takes part in
-`qt-analyzer gates --example ...` and `--benchmark`; `gate = "<name>"` selects the
+`qt-det gates --example ...` and `--benchmark`; `gate = "<name>"` selects the
 one that makes the analysis decisions.
 
 - `zscore`: the analyzer's own test. Per scope, observed passes against those
@@ -39,10 +39,10 @@ from dataclasses import dataclass, field
 from statistics import NormalDist
 from typing import TYPE_CHECKING, Any, Protocol
 
-from qt_analyzer.stats import Pair, scope_test, z_threshold
+from qt_det.stats import Pair, scope_test, z_threshold
 
 if TYPE_CHECKING:
-    from qt_analyzer.analyse import CaseResult, Comparison
+    from qt_det.analyse import CaseResult, Comparison
 
 _NORMAL = NormalDist()
 
@@ -430,4 +430,4 @@ class ZScoreSplitGate:
 
 
 # Candidate gates under exploration register themselves like any user gate.
-from qt_analyzer import candidate_gates  # noqa: E402, F401
+from qt_det import candidate_gates  # noqa: E402, F401

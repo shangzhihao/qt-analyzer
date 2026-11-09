@@ -114,7 +114,7 @@ wheels = [
 ]
 
 [[package]]
-name = "qt-analyzer"
+name = "qt-det"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

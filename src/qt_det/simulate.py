@@ -20,9 +20,9 @@ import random
 from dataclasses import dataclass
 from itertools import product
 
-from qt_analyzer.analyse import Agg, Config, StateData, analyse_data
-from qt_analyzer.contract import ComponentVersion, State, state_key
-from qt_analyzer.stores.results import ResultStore
+from qt_det.analyse import Agg, Config, StateData, analyse_data
+from qt_det.contract import ComponentVersion, State, state_key
+from qt_det.stores.results import ResultStore
 
 
 @dataclass(frozen=True)

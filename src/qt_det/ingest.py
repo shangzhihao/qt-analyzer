@@ -11,9 +11,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from qt_analyzer.contract import ContractError, Execution, Manifest, parse_shard_log
-from qt_analyzer.stores.base import CaseCount, IndexEntry, LogStore
-from qt_analyzer.stores.results import ResultStore
+from qt_det.contract import ContractError, Execution, Manifest, parse_shard_log
+from qt_det.stores.base import CaseCount, IndexEntry, LogStore
+from qt_det.stores.results import ResultStore
 
 
 @dataclass

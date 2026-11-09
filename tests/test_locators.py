@@ -2,16 +2,16 @@ import pytest
 from synthetic import make_cases
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.analyse import Config
-from qt_analyzer.gate_compare import EXAMPLES, build_gates, locator_benchmark
-from qt_analyzer.locators import (
+from qt_det.analyse import Config
+from qt_det.gate_compare import EXAMPLES, build_gates, locator_benchmark
+from qt_det.locators import (
     available_locators,
     format_location,
     location_from_json,
     make_locator,
     register_locator,
 )
-from qt_analyzer.report import pr_comment
+from qt_det.report import pr_comment
 
 
 def test_ranked_locator_is_registered():

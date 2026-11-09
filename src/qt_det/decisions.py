@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from qt_analyzer.stores.results import ResultStore
+from qt_det.stores.results import ResultStore
 
 PATH = "decisions.jsonl"
 

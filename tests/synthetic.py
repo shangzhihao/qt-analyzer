@@ -9,7 +9,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from qt_analyzer.contract import SCHEMA_VERSION
+from qt_det.contract import SCHEMA_VERSION
+
+REPOS = {"graph": "me/qt-app", "data": "me/qt-dep"}  # component -> repository
 
 
 @dataclass(frozen=True)
@@ -46,7 +48,7 @@ def manifest(
         "state": {
             "created_by": created_by,
             "components": {
-                name: {"repo": f"me/qt-{name}", "sha": sha, "committed_at": at}
+                name: {"repo": REPOS[name], "sha": sha, "committed_at": at}
                 for name, (sha, at) in components.items()
             },
         },
@@ -54,7 +56,7 @@ def manifest(
         "runs_per_case": runs,
         "shards": shards,
         "seed": 1,
-        "producer": {"repo": "me/qt-graph", "run_url": "https://example.invalid/run"},
+        "producer": {"repo": "me/qt-app", "run_url": "https://example.invalid/run"},
         "tools": {},
     }
 

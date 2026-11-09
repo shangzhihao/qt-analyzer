@@ -21,9 +21,9 @@ import random
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from qt_analyzer.analyse import STAGES, Agg, Comparison, compare
-from qt_analyzer.gates import Gate, Verdict, available_gates, make_gate
-from qt_analyzer.simulate import SimCase, synthetic_population
+from qt_det.analyse import STAGES, Agg, Comparison, compare
+from qt_det.gates import Gate, Verdict, available_gates, make_gate
+from qt_det.simulate import SimCase, synthetic_population
 
 Counts = dict[tuple[str, str], Agg]
 

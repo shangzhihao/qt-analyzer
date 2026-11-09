@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from qt_analyzer.contract import Manifest
+from qt_det.contract import Manifest
 
 
 class LocalDirStore:

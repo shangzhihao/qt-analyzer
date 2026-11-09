@@ -17,11 +17,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import NormalDist
 
-from qt_analyzer.analyse import Agg, Counts, load, merge
-from qt_analyzer.contract import parse_shard_log
-from qt_analyzer.ingest import aggregate
-from qt_analyzer.stats import fisher_drop, wilson_interval
-from qt_analyzer.stores.results import ResultStore
+from qt_det.analyse import Agg, Counts, load, merge
+from qt_det.contract import parse_shard_log
+from qt_det.ingest import aggregate
+from qt_det.stats import fisher_drop, wilson_interval
+from qt_det.stores.results import ResultStore
 
 _NORMAL = NormalDist()
 

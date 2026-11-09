@@ -2,8 +2,8 @@ import random
 
 from synthetic import make_cases, manifest, write_run
 
-from qt_analyzer.ingest import ingest_pending
-from qt_analyzer.stores import LocalDirStore, ResultStore
+from qt_det.ingest import ingest_pending
+from qt_det.stores import LocalDirStore, ResultStore
 
 COMPONENTS = {"graph": ("g1", "2026-11-01T10:00:00Z"), "data": ("d1", "2026-11-01T09:00:00Z")}
 

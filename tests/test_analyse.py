@@ -3,12 +3,12 @@
 import dataclasses
 import random
 
-from synthetic import Case, make_cases, manifest, write_run
+from synthetic import REPOS, Case, make_cases, manifest, write_run
 
-from qt_analyzer.analyse import Config, analyse, save
-from qt_analyzer.contract import state_key
-from qt_analyzer.ingest import ingest_pending
-from qt_analyzer.stores import LocalDirStore, ResultStore
+from qt_det.analyse import Config, analyse, save
+from qt_det.contract import state_key
+from qt_det.ingest import ingest_pending
+from qt_det.stores import LocalDirStore, ResultStore
 
 
 class Scenario:
@@ -44,7 +44,7 @@ class Scenario:
         components = self.components | {component: (f"merge-{head_sha}", "2026-11-03T00:00:00Z")}
         pr = {
             "component": component,
-            "repo": f"me/qt-{component}",
+            "repo": REPOS[component],
             "number": number,
             "head_sha": head_sha,
             "merge_sha": f"merge-{head_sha}",

@@ -5,10 +5,10 @@ import subprocess
 from synthetic import Case, report_entries
 from test_analyse import Scenario
 
-from qt_analyzer import case_check
-from qt_analyzer.analyse import Agg
-from qt_analyzer.cli import main
-from qt_analyzer.fetch import fetch_results
+from qt_det import case_check
+from qt_det.analyse import Agg
+from qt_det.cli import main
+from qt_det.fetch import fetch_results
 
 STEADY = Case("steady", "topicA", 0.9)
 COIN = Case("coin", "topicB", 0.5)

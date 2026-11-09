@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
-from qt_analyzer.contract import Manifest
+from qt_det.contract import Manifest
 
 RunStatus = Literal["complete", "incomplete", "rejected"]
 

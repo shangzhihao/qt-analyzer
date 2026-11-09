@@ -6,15 +6,15 @@ import pytest
 from synthetic import make_cases
 from test_analyse import Scenario, with_family
 
-from qt_analyzer.analyse import Config
-from qt_analyzer.decisions import DecisionLog
-from qt_analyzer.gate_compare import (
+from qt_det.analyse import Config
+from qt_det.decisions import DecisionLog
+from qt_det.gate_compare import (
     EXAMPLES,
     benchmark,
     build_gates,
     judge_all,
 )
-from qt_analyzer.gates import (
+from qt_det.gates import (
     Observation,
     Verdict,
     available_gates,
@@ -22,7 +22,7 @@ from qt_analyzer.gates import (
     poisson_binomial,
     register_gate,
 )
-from qt_analyzer.gates import testimate_threshold as threshold_gate
+from qt_det.gates import testimate_threshold as threshold_gate
 
 TESTIMATE = ("testimate_threshold", "poisson_binomial")
 OURS = ("zscore", "bayes")
@@ -78,7 +78,7 @@ def test_a_gate_from_your_own_module_joins_everything(tmp_path, monkeypatch):
         textwrap.dedent(
             """
             from dataclasses import dataclass
-            from qt_analyzer.gates import Verdict, register_gate
+            from qt_det.gates import Verdict, register_gate
 
             @register_gate("always_alarm")
             @dataclass(frozen=True)
@@ -141,14 +141,14 @@ def test_zscore_split_catches_broad_local_and_flaky_drops():
 def test_zscore_split_has_a_stricter_budget_for_improvements():
     gate = make_gate("zscore_split", {})
     (scope, _, share), *_ = gate._scopes(EXAMPLES["improvement"][1]())
-    from qt_analyzer.stats import z_threshold
+    from qt_det.stats import z_threshold
 
     assert scope == "overall"
     assert -z_threshold(gate.improvement_alpha * share) > -z_threshold(gate.alpha * share)
 
 
 def test_equal_false_alarm_tuning_reaches_the_target_without_exceeding_it():
-    from qt_analyzer.gate_compare import equalise_false_alarms
+    from qt_det.gate_compare import equalise_false_alarms
 
     gates, notes = equalise_false_alarms(build_gates(["poisson_binomial", "zscore_split"], {}),
                                          0.1, trials=80, seed=7)  # fmt: skip
@@ -165,7 +165,7 @@ def test_candidate_gates_are_registered():
 
 
 def test_higher_criticism_statistic():
-    from qt_analyzer.candidate_gates import higher_criticism
+    from qt_det.candidate_gates import higher_criticism
 
     assert higher_criticism([]) == 0.0
     uniform = [(i + 0.5) / 100 for i in range(100)]
@@ -182,7 +182,7 @@ def test_zscore_strata_catches_reliable_cases_breaking():
 
 
 def test_stage_settings_override_the_gate_defaults():
-    from qt_analyzer.analyse import stage_params
+    from qt_det.analyse import stage_params
 
     params = {"zscore_strata": {"alpha": 0.05, "nightly": {"alpha": 0.3}}}
     config = Config(gate="zscore_strata", gate_params=params)
