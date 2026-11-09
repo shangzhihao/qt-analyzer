@@ -51,6 +51,8 @@ def print_status(analysis: Analysis, out=sys.stdout) -> None:
         if e.nightly and (e.nightly.step_flagged or e.nightly.reference_flagged):
             scopes = sorted(set(e.nightly.step_flagged) | set(e.nightly.reference_flagged))
             nightly += f" ({', '.join(scopes)})"
+        if e.nightly and e.nightly.step_improved:
+            nightly += f" improved ({', '.join(e.nightly.step_improved)})"
         print(
             f"{_short(d.state.key):10}  {created:10}  "
             f"{_rate(pass_rate(d.counts['main']))}  "

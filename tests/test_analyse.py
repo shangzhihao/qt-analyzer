@@ -203,3 +203,22 @@ def test_pr_against_its_base_state(tmp_path):
     # baseline never measured: compared with the nearest measured main state
     assert prs[9].status == "ok" and prs[9].nearest_baseline
     assert prs[9].baseline == s.keys[-1]
+
+
+def test_alerts_close_one_by_one_and_the_nightly_sees_improvements(tmp_path):
+    cases = make_cases(10, 20, 0.97)
+    s = Scenario(tmp_path, cases)
+    for i in range(1, 4):
+        s.commit("graph", f"g{i}")
+    first = with_family(cases, "family0", 0.5)
+    drop0 = s.commit("data", "d1", first)
+    drop1 = s.commit("data", "d2", with_family(first, "family1", 0.8))
+    back0 = s.commit("data", "d3", with_family(cases, "family1", 0.8))
+    analysis = s.analyse()
+    alerts = {a.state: a for a in analysis.alerts}
+    assert "family0" in alerts[drop0].scopes
+    assert "family1" in alerts[drop1].scopes and "family0" not in alerts[drop1].scopes
+    entry = next(e for e in analysis.timeline if e.data.state.key == back0)
+    assert "family0" in entry.nightly.step_improved
+    assert not alerts[drop0].open and alerts[drop0].closed_by == back0
+    assert alerts[drop1].open and back0 in alerts[drop1].still_regressed_at

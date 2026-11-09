@@ -164,6 +164,11 @@ class Comparison:
         scopes = [("overall", self.overall)] + sorted(self.families.items())
         return [name for name, t in scopes if t.cases and t.z <= z]
 
+    def scopes_above(self, z: float) -> list[str]:
+        """Scopes whose z is at or above a fixed threshold."""
+        scopes = [("overall", self.overall)] + sorted(self.families.items())
+        return [name for name, t in scopes if t.cases and t.z >= z]
+
     def improved_scopes(self, alpha_per_state: float) -> list[str]:
         threshold = -z_threshold(alpha_per_state / (1 + len(self.families)))
         scopes = [("overall", self.overall)] + sorted(self.families.items())
@@ -216,7 +221,9 @@ def judge(comparison: Comparison, stage: str, config: Config) -> tuple[list[str]
         if stage == "push":
             alpha = config.push_alpha_per_state
         elif stage == "nightly":
-            return comparison.scopes_below(config.nightly_z), []
+            return comparison.scopes_below(config.nightly_z), comparison.scopes_above(
+                -config.nightly_z
+            )
         elif stage == "reference":
             alpha = config.reference_move_alpha_per_state
         else:
@@ -308,7 +315,9 @@ class PushResult:
 
 @dataclass
 class NightlyResult:
-    status: str  # "confirmed" | "ongoing" | "cleared" | "ok" | "first" | "not-comparable"
+    status: (
+        str  # "confirmed" | "ongoing" | "cleared" | "improved" | "ok" | "first" | "not-comparable"
+    )
     predecessor: str | None
     reference: str | None
     step_flagged: list[str]
@@ -317,6 +326,7 @@ class NightlyResult:
     step: Comparison | None
     vs_reference: Comparison | None
     reason: str = ""  # why it was not comparable
+    step_improved: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -454,7 +464,7 @@ def analyse_data(
         if entry.data.runs["main"]:
             entry.push = _push(entries, i, config)
         if entry.push and entry.push.status == "suspected" and entry.nightly:
-            if entry.nightly.status == "ok":
+            if entry.nightly.status in ("ok", "improved"):
                 entry.nightly.status = "cleared"
     prs = _prs(entries, pr_runs, config, log)
     return Analysis(entries, alerts, reference, prs, log, dispersion)
@@ -565,6 +575,7 @@ def _nightly(
             step,
             vs_ref,
             record.get("reason", ""),
+            record.get("step_improved", []),
         )
         reference = by_key.get(record["reference"], data)
         previous, previous_index = data, i
@@ -586,7 +597,7 @@ def _decide(
     data = entries[i].data
     key = data.state.key
     step_ok = step is not None and step.comparable
-    step_flagged = judge(step, "nightly", config)[0] if step_ok else []
+    step_flagged, step_improved = judge(step, "nightly", config) if step_ok else ([], [])
     cases_flagged = _case_flags(step, config.nightly_case_fdr) if step_ok else []
     ref_ok = vs_ref is not None and vs_ref.comparable
     ref_flagged = judge(vs_ref, "nightly", config)[0] if ref_ok else []
@@ -601,31 +612,42 @@ def _decide(
         reason = vs_ref.not_comparable_reason()
         effects += [{"action": "closed", "id": a, "state": key} for a in open_ids]
         verdict, reference_after = "not-comparable", data
-    elif step_flagged or (ref_flagged and not open_ids):
-        # a new drop (a step, or slow drift while no alert is open)
-        new_id = alert_id(key, log.alert_ids() | set(alerts))
-        suspect = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
-        source = step if step_flagged else vs_ref
-        flagged = step_flagged or ref_flagged
-        where = location_json(locate(source, "regression", flagged, config))
-        effects.append({"action": "opened", "id": new_id, "state": key, "suspect_range": suspect,
-                        "scopes": sorted(set(step_flagged) | set(ref_flagged)),
-                        "cases": cases_flagged, "reference": reference.state.key,
-                        "where": where})  # fmt: skip
-        verdict, reference_after = "confirmed", reference
-    elif ref_flagged and open_ids:
-        effects.append({"action": "extended", "id": open_ids[-1], "state": key})
-        verdict, reference_after = "ongoing", reference
     else:
-        effects += [{"action": "closed", "id": a, "state": key} for a in open_ids]
-        moves = not judge(vs_ref, "reference", config)[0]
-        verdict, reference_after = "ok", data if moves else reference
+        # Each open alert stays open while its own scopes are still below the
+        # reference, and closes on its own once they are not.
+        still = [a for a in open_ids if set(_own_scopes(alerts[a].scopes)) & set(ref_flagged)]
+        covered = {s for a in still for s in alerts[a].scopes}
+        # A new drop: a step, or scopes below the reference that no open alert
+        # covers (slow drift). Totals and strata are left to the open alerts.
+        new_scopes = set(step_flagged) | {
+            s for s in ref_flagged if s not in covered and (s not in AGGREGATE_SCOPES or not still)
+        }
+        effects += [{"action": "closed", "id": a, "state": key} for a in open_ids if a not in still]
+        if new_scopes:
+            new_id = alert_id(key, log.alert_ids() | set(alerts))
+            suspect = [entries[j].data.state.key for j in range(previous_index + 1, i + 1)]
+            source = step if step_flagged else vs_ref
+            where = location_json(locate(source, "regression", sorted(new_scopes), config))
+            effects.append({"action": "opened", "id": new_id, "state": key,
+                            "suspect_range": suspect, "scopes": sorted(new_scopes),
+                            "cases": cases_flagged, "reference": reference.state.key,
+                            "where": where})  # fmt: skip
+        effects += [{"action": "extended", "id": a, "state": key} for a in still]
+        if new_scopes:
+            verdict, reference_after = "confirmed", reference
+        elif still:
+            verdict, reference_after = "ongoing", reference
+        else:
+            moves = not judge(vs_ref, "reference", config)[0]
+            verdict = "improved" if step_improved else "ok"
+            reference_after = data if moves else reference
     record = log.append(
         "state.decided",
         state=key,
         verdict=verdict,
         reference=reference_after.state.key,
         step_flagged=step_flagged,
+        step_improved=step_improved,
         reference_flagged=ref_flagged,
         cases_flagged=cases_flagged,
         effects=effects,
@@ -642,6 +664,15 @@ def _decide(
         log.append("reference.moved", state=reference_after.state.key, by=key,
                    reason=moved_because)  # fmt: skip
     return record
+
+
+# Scopes over the whole suite; an alert is identified by its topics when it has any.
+AGGREGATE_SCOPES = frozenset({"overall", "reliable cases", "flaky cases"})
+
+
+def _own_scopes(scopes: list[str]) -> list[str]:
+    topics = [s for s in scopes if s not in AGGREGATE_SCOPES]
+    return topics or scopes
 
 
 def _nearest_measured(entries: list[TimelineEntry], before: str) -> int | None:
@@ -803,6 +834,7 @@ def save(results: ResultStore, analysis: Analysis) -> None:
                 "predecessor": e.nightly.predecessor,
                 "reference": e.nightly.reference,
                 "step_flagged": e.nightly.step_flagged,
+                "step_improved": e.nightly.step_improved,
                 "reference_flagged": e.nightly.reference_flagged,
                 "cases_flagged": e.nightly.cases_flagged,
                 "step": comparison_json(e.nightly.step),

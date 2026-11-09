@@ -90,6 +90,7 @@ def _state_rows(analysis: Analysis) -> list[dict[str, Any]]:
             },
             "nightly": None if nightly is None else {
                 "status": nightly.status, "step_flagged": nightly.step_flagged,
+                "step_improved": nightly.step_improved,
                 "reference_flagged": nightly.reference_flagged, "reason": nightly.reason,
                 "z": _overall_z(nightly.step),
             },

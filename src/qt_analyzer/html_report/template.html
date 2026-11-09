@@ -194,6 +194,7 @@ function badge(status) {
 function stateVerdict(st) {
   if (st.nightly && ["confirmed", "ongoing", "not-comparable"].includes(st.nightly.status)) return st.nightly.status;
   if (st.push && st.push.status === "suspected") return "suspected";
+  if (st.nightly && st.nightly.step_improved && st.nightly.step_improved.length) return "improved";
   if (st.push && st.push.improved && st.push.improved.length) return "improved";
   if (st.push && st.push.status === "not-comparable") return "not-comparable";
   return st.nightly ? st.nightly.status : st.push ? st.push.status : "ok";
@@ -346,7 +347,8 @@ $("timeline-table").append(table([
   { title: "10 runs", num: true, render: (st) => pct(st.nightly_rate), sort: (st) => st.nightly_rate ?? -1 },
   { title: "Nightly z", num: true, render: (st) => zf(st.nightly && st.nightly.z), sort: (st) => (st.nightly && st.nightly.z) ?? 0 },
   { title: "Verdict", render: (st) => badge(stateVerdict(st)) },
-  { title: "Flagged", render: (st) => [...new Set([...(st.nightly ? st.nightly.step_flagged.concat(st.nightly.reference_flagged) : []), ...(st.push ? st.push.flagged : [])])].join(", ") || "–" },
+  { title: "Flagged", render: (st) => [[...new Set([...(st.nightly ? st.nightly.step_flagged.concat(st.nightly.reference_flagged) : []), ...(st.push ? st.push.flagged : [])])].join(", "),
+      st.nightly && (st.nightly.step_improved || []).length ? "▲ " + st.nightly.step_improved.join(", ") : ""].filter(Boolean).join(" · ") || "–" },
   { title: "Tests added / removed / edited", render: (st) => `${st.coverage.added} / ${st.coverage.removed} / ${st.coverage.edited}` },
 ], M.states, { sortable: true }));
 
