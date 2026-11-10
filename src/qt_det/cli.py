@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from qt_det import case_check, gate_compare
@@ -304,7 +305,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"commented on {key}")
         return 0
     if args.command == "analyse":
+        from qt_det.html_report.svg import FILE, quality_svg
+
         save(results, analysis)
+        generated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+        (results.root / FILE).write_text(quality_svg(analysis, generated_at), encoding="utf-8")
     print_status(analysis)
     return 0
 
