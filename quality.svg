@@ -12,7 +12,7 @@ text { font: 12px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 </style>
 <rect class="bg" width="800" height="300" rx="6"/>
 <text class="ink title" x="48" y="22">Answer quality: nightly pass rate per main state</text>
-<text class="muted" x="48" y="40">Reference 170fb2817f (ring, dashed level) · open alerts 0 · updated 2026-11-10 14:07 UTC</text>
+<text class="muted" x="48" y="40">Reference 170fb2817f (ring, dashed level) · open alerts 0 · updated 2026-11-10 14:12 UTC</text>
 <line class="grid" x1="48" x2="776" y1="260.0" y2="260.0" stroke-width="1"/>
 <text class="muted" x="40" y="264.0" text-anchor="end">80%</text>
 <line class="grid" x1="48" x2="776" y1="158.0" y2="158.0" stroke-width="1"/>

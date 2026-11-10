@@ -1,0 +1,90 @@
+{
+  "baseline": "sha256:545cd571da21a691f11ca048bbfbcfa836df0764a0910eeed7d9f7484f8eeb05",
+  "comparison": {
+    "coverage": {
+      "added": [],
+      "edited": [],
+      "removed": []
+    },
+    "families": {
+      "benefits": {
+        "cases": 20,
+        "rate_b": 0.8,
+        "rate_s": 0.75,
+        "z": -0.1781741612749496
+      },
+      "deadlines": {
+        "cases": 20,
+        "rate_b": 1.0,
+        "rate_s": 1.0,
+        "z": 0.0
+      },
+      "documents": {
+        "cases": 20,
+        "rate_b": 0.75,
+        "rate_s": 0.8,
+        "z": 0.1781741612749496
+      },
+      "eligibility": {
+        "cases": 20,
+        "rate_b": 0.85,
+        "rate_s": 0.85,
+        "z": 0.0
+      },
+      "fees": {
+        "cases": 20,
+        "rate_b": 0.95,
+        "rate_s": 0.85,
+        "z": -0.5388159060803247
+      },
+      "forms": {
+        "cases": 20,
+        "rate_b": 0.9,
+        "rate_s": 0.9,
+        "z": 0.0
+      },
+      "housing": {
+        "cases": 20,
+        "rate_b": 0.5,
+        "rate_s": 0.5,
+        "z": 0.0
+      },
+      "income": {
+        "cases": 20,
+        "rate_b": 0.95,
+        "rate_s": 1.0,
+        "z": 0.18107149208503706
+      },
+      "residence": {
+        "cases": 20,
+        "rate_b": 0.7,
+        "rate_s": 0.75,
+        "z": 0.18107149208503706
+      },
+      "taxes": {
+        "cases": 20,
+        "rate_b": 1.0,
+        "rate_s": 0.85,
+        "z": -0.8908708063747479
+      }
+    },
+    "overall": {
+      "cases": 200,
+      "rate_b": 0.84,
+      "rate_s": 0.825,
+      "z": -0.2814947649497878
+    }
+  },
+  "flagged": [],
+  "head_sha": "0313783e1099d88fbb24350fc46f9435a1aee1e8",
+  "improved": [],
+  "location": null,
+  "nearest_baseline": false,
+  "number": 10,
+  "reason": "",
+  "repo": "shangzhihao/qt-app",
+  "run_id": "graph-42831601880",
+  "run_url": "https://github.com/shangzhihao/qt-app/actions/runs/42831601880",
+  "status": "ok",
+  "suspected_cases": []
+}
