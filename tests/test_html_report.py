@@ -1,5 +1,6 @@
 import json
 import re
+from xml.etree import ElementTree
 
 from synthetic import Case, make_cases
 from test_analyse import Scenario, with_family
@@ -80,3 +81,12 @@ def test_definition_changes_are_marked_per_case(tmp_path):
     assert (
         by_key["a"]["definition_changed_at"] == [1] and by_key["b"]["definition_changed_at"] == []
     )
+
+
+def test_analyse_writes_the_readme_chart_next_to_the_results(tmp_path):
+    s = _history(tmp_path)
+    assert main(["analyse", "--results", str(s.results.root)]) == 0
+    svg = ElementTree.parse(s.results.root / "quality.svg").getroot()  # well-formed
+    text = "".join(svg.itertext())
+    assert "open alerts 1" in text and "family1 (open)" in text
+    assert len(svg.findall("{http://www.w3.org/2000/svg}circle")) >= 4  # one per measured state

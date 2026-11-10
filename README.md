@@ -9,6 +9,12 @@ It never imports the code under test. Its only input is the run contract: a
 `manifest.json` plus one pytest-reportlog file per shard (see
 [the design](#contract)).
 
+![Nightly pass rate per main state](https://raw.githubusercontent.com/shangzhihao/qt-det/qt-results/quality.svg)
+
+The chart is redrawn by every analysis (`quality.svg` on the `qt-results`
+branch): the nightly pass rate of each main state, where alerts opened, step
+improvements, the reference, and where the case set changed.
+
 ## Usage
 
 ```sh
