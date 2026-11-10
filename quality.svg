@@ -12,7 +12,7 @@ text { font: 12px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 </style>
 <rect class="bg" width="800" height="300" rx="6"/>
 <text class="ink title" x="48" y="22">Answer quality: nightly pass rate per main state</text>
-<text class="muted" x="48" y="40">Reference e6b737ebdd (ring, dashed level) · open alerts 0 · updated 2026-11-10 14:13 UTC</text>
+<text class="muted" x="48" y="40">Reference 545cd571da (ring, dashed level) · open alerts 0 · updated 2026-11-10 14:14 UTC</text>
 <line class="grid" x1="48" x2="776" y1="260.0" y2="260.0" stroke-width="1"/>
 <text class="muted" x="40" y="264.0" text-anchor="end">80%</text>
 <line class="grid" x1="48" x2="776" y1="158.0" y2="158.0" stroke-width="1"/>
@@ -20,36 +20,38 @@ text { font: 12px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 <line class="grid" x1="48" x2="776" y1="56.0" y2="56.0" stroke-width="1"/>
 <text class="muted" x="40" y="60.0" text-anchor="end">90%</text>
 <text class="muted" x="48.0" y="286" text-anchor="middle">11-06</text>
-<text class="muted" x="304.9" y="286" text-anchor="middle">11-08</text>
-<text class="muted" x="433.4" y="286" text-anchor="middle">11-09</text>
-<text class="muted" x="776.0" y="286" text-anchor="middle">11-10</text>
-<line class="ref" x1="776.0" x2="776" y1="174.3" y2="174.3" stroke-width="1" stroke-dasharray="4 4"/>
-<circle class="ref" cx="776.0" cy="174.3" r="8" fill="none" stroke-width="1.5"/>
-<polyline class="line" points="48.0,111.1 90.8,89.7 133.6,101.9 176.5,94.8 219.3,99.9 262.1,95.8 304.9,195.7 347.8,211.0 390.6,216.1 433.4,198.8 476.2,222.3 519.1,121.3 561.9,184.5 604.7,180.4 647.5,142.7 690.4,159.0" fill="none" stroke-width="2" stroke-linejoin="round"/>
-<line class="ref" x1="711.8" x2="711.8" y1="56" y2="260" stroke-width="1" stroke-dasharray="2 4"/>
-<text class="muted" x="705.8" y="68" text-anchor="end">cases changed</text>
-<polyline class="line" points="733.2,152.9 776.0,174.3" fill="none" stroke-width="2" stroke-linejoin="round"/>
+<text class="muted" x="277.9" y="286" text-anchor="middle">11-08</text>
+<text class="muted" x="392.8" y="286" text-anchor="middle">11-09</text>
+<text class="muted" x="699.4" y="286" text-anchor="middle">11-10</text>
+<line class="ref" x1="737.7" x2="776" y1="151.9" y2="151.9" stroke-width="1" stroke-dasharray="4 4"/>
+<circle class="ref" cx="737.7" cy="151.9" r="8" fill="none" stroke-width="1.5"/>
+<polyline class="line" points="48.0,111.1 86.3,89.7 124.6,101.9 162.9,94.8 201.3,99.9 239.6,95.8 277.9,195.7 316.2,211.0 354.5,216.1 392.8,198.8 431.2,222.3 469.5,121.3 507.8,184.5 546.1,180.4 584.4,142.7 622.7,159.0" fill="none" stroke-width="2" stroke-linejoin="round"/>
+<line class="ref" x1="641.9" x2="641.9" y1="56" y2="260" stroke-width="1" stroke-dasharray="2 4"/>
+<text class="muted" x="635.9" y="68" text-anchor="end">cases changed</text>
+<polyline class="line" points="661.1,152.9 699.4,174.3 737.7,151.9 776.0,193.7" fill="none" stroke-width="2" stroke-linejoin="round"/>
 <circle class="dot" cx="48.0" cy="111.1" r="4" stroke-width="2"><title>5ef6899584 (data b50bc06): 87.3%</title></circle>
-<circle class="dot" cx="90.8" cy="89.7" r="4" stroke-width="2"><title>898e834394 (graph 3f6c3e5): 88.3%</title></circle>
-<circle class="dot" cx="133.6" cy="101.9" r="4" stroke-width="2"><title>c1b97371bd (data 212edbb): 87.8%</title></circle>
-<circle class="dot" cx="176.5" cy="94.8" r="4" stroke-width="2"><title>d59d088d74 (graph eb2d03a): 88.1%</title></circle>
-<circle class="dot" cx="219.3" cy="99.9" r="4" stroke-width="2"><title>9bd8451715 (graph db7f5c2): 87.8%</title></circle>
-<circle class="dot" cx="262.1" cy="95.8" r="4" stroke-width="2"><title>f9590a07e2 (graph 1dfe208): 88.0%</title></circle>
-<circle class="dot" cx="304.9" cy="195.7" r="4" stroke-width="2"><title>2e01df13b6 (data 950b2ce): 83.2%</title></circle>
-<text x="304.9" y="231.0" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">taxes (closed)</tspan></text>
-<circle class="dot" cx="347.8" cy="211.0" r="4" stroke-width="2"><title>8da949235a (data 9f5a427): 82.4%</title></circle>
-<circle class="dot" cx="390.6" cy="216.1" r="4" stroke-width="2"><title>86bb9b0cc3 (data 29fc018): 82.2%</title></circle>
-<text x="390.6" y="236.1" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">fees (closed)</tspan></text>
-<circle class="dot" cx="433.4" cy="198.8" r="4" stroke-width="2"><title>1182acb9e4 (graph 0bd8ef3): 83.0%</title></circle>
-<circle class="dot" cx="476.2" cy="222.3" r="4" stroke-width="2"><title>59395d09cc (data f8bfc75): 81.8%</title></circle>
-<circle class="dot" cx="519.1" cy="121.3" r="4" stroke-width="2"><title>a11398dc9e (data 97e8b49): 86.8%</title></circle>
-<text x="519.1" y="109.3" text-anchor="middle"><tspan class="good">▲</tspan> <tspan class="ink">taxes</tspan></text>
-<circle class="dot" cx="561.9" cy="184.5" r="4" stroke-width="2"><title>fce4b72603 (graph 75598a3): 83.7%</title></circle>
-<text x="561.9" y="204.5" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">housing (closed)</tspan></text>
-<circle class="dot" cx="604.7" cy="180.4" r="4" stroke-width="2"><title>a306fa823a (graph c7da8a6): 83.9%</title></circle>
-<circle class="dot" cx="647.5" cy="142.7" r="4" stroke-width="2"><title>50f2ff1bc9 (data 9f322fa): 85.8%</title></circle>
-<text x="647.5" y="130.7" text-anchor="middle"><tspan class="good">▲</tspan> <tspan class="ink">fees</tspan></text>
-<circle class="dot" cx="690.4" cy="159.0" r="4" stroke-width="2"><title>e367bdb8a1 (data 56cddc7): 85.0%</title></circle>
-<circle class="dot" cx="733.2" cy="152.9" r="4" stroke-width="2"><title>170fb2817f (graph c330f03): 85.2%</title></circle>
-<circle class="dot" cx="776.0" cy="174.3" r="4" stroke-width="2"><title>e6b737ebdd (graph 1fb13b5): 84.2%</title></circle>
+<circle class="dot" cx="86.3" cy="89.7" r="4" stroke-width="2"><title>898e834394 (graph 3f6c3e5): 88.3%</title></circle>
+<circle class="dot" cx="124.6" cy="101.9" r="4" stroke-width="2"><title>c1b97371bd (data 212edbb): 87.8%</title></circle>
+<circle class="dot" cx="162.9" cy="94.8" r="4" stroke-width="2"><title>d59d088d74 (graph eb2d03a): 88.1%</title></circle>
+<circle class="dot" cx="201.3" cy="99.9" r="4" stroke-width="2"><title>9bd8451715 (graph db7f5c2): 87.8%</title></circle>
+<circle class="dot" cx="239.6" cy="95.8" r="4" stroke-width="2"><title>f9590a07e2 (graph 1dfe208): 88.0%</title></circle>
+<circle class="dot" cx="277.9" cy="195.7" r="4" stroke-width="2"><title>2e01df13b6 (data 950b2ce): 83.2%</title></circle>
+<text x="277.9" y="231.0" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">taxes (closed)</tspan></text>
+<circle class="dot" cx="316.2" cy="211.0" r="4" stroke-width="2"><title>8da949235a (data 9f5a427): 82.4%</title></circle>
+<circle class="dot" cx="354.5" cy="216.1" r="4" stroke-width="2"><title>86bb9b0cc3 (data 29fc018): 82.2%</title></circle>
+<text x="354.5" y="236.1" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">fees (closed)</tspan></text>
+<circle class="dot" cx="392.8" cy="198.8" r="4" stroke-width="2"><title>1182acb9e4 (graph 0bd8ef3): 83.0%</title></circle>
+<circle class="dot" cx="431.2" cy="222.3" r="4" stroke-width="2"><title>59395d09cc (data f8bfc75): 81.8%</title></circle>
+<circle class="dot" cx="469.5" cy="121.3" r="4" stroke-width="2"><title>a11398dc9e (data 97e8b49): 86.8%</title></circle>
+<text x="469.5" y="109.3" text-anchor="middle"><tspan class="good">▲</tspan> <tspan class="ink">taxes</tspan></text>
+<circle class="dot" cx="507.8" cy="184.5" r="4" stroke-width="2"><title>fce4b72603 (graph 75598a3): 83.7%</title></circle>
+<text x="507.8" y="204.5" text-anchor="middle"><tspan class="alert">▼</tspan> <tspan class="ink">housing (closed)</tspan></text>
+<circle class="dot" cx="546.1" cy="180.4" r="4" stroke-width="2"><title>a306fa823a (graph c7da8a6): 83.9%</title></circle>
+<circle class="dot" cx="584.4" cy="142.7" r="4" stroke-width="2"><title>50f2ff1bc9 (data 9f322fa): 85.8%</title></circle>
+<text x="584.4" y="130.7" text-anchor="middle"><tspan class="good">▲</tspan> <tspan class="ink">fees</tspan></text>
+<circle class="dot" cx="622.7" cy="159.0" r="4" stroke-width="2"><title>e367bdb8a1 (data 56cddc7): 85.0%</title></circle>
+<circle class="dot" cx="661.1" cy="152.9" r="4" stroke-width="2"><title>170fb2817f (graph c330f03): 85.2%</title></circle>
+<circle class="dot" cx="699.4" cy="174.3" r="4" stroke-width="2"><title>e6b737ebdd (graph 1fb13b5): 84.2%</title></circle>
+<circle class="dot" cx="737.7" cy="151.9" r="4" stroke-width="2"><title>545cd571da (graph 38b7948): 85.3%</title></circle>
+<circle class="dot" cx="776.0" cy="193.7" r="4" stroke-width="2"><title>5cd2865528 (graph 99743cc): 83.2%</title></circle>
 </svg>
